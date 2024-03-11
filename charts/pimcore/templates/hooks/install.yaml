@@ -1,0 +1,88 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "pimcore.fullname" . }}-install
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    # has to be run after "initialize" hook
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        app.kubernetes.io/name: {{ include "pimcore.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}-install
+    spec:
+      {{- with .Values.php.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pimcore.serviceAccountName" . }}
+      restartPolicy: Never
+      initContainers:
+        {{- include "pimcore.initContainers.wait-for-mysql" . | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.php.image.registry }}:{{ .Values.php.image.tag }}"
+          imagePullPolicy: {{ .Values.php.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "pimcore.fullname" . }}-dotenv
+          command: ["/bin/sh", "-c"]
+          args:
+          - |
+            set -e
+
+            if [ -e "/var/www/pimcore/var/installed" ]; then
+              echo "Pimcore is already installed. Skipping installation.";
+            fi
+
+            cd /var/www/pimcore
+
+            echo "Running pimcore-install ..."
+            ./vendor/bin/pimcore-install \
+              {{- with .Values.pimcore.db }}
+              --mysql-host-socket={{ .host }} \
+              --mysql-database={{ .name }} \
+              {{- end }}
+              --no-interaction
+
+              date --rfc-2822 > /var/www/pimcore/var/installed
+              echo "Done."
+          securityContext:
+            runAsUser: {{ .Values.php.phpUser.uid }}
+            runAsGroup: {{ .Values.php.phpUser.gid }}
+          resources:
+            {{- toYaml .Values.installation.resources | nindent 12 }}
+          volumeMounts:
+            - name: php-ini
+              mountPath: /usr/local/etc/php/php.ini
+              subPath: php.ini
+            - name: php-config
+              mountPath: /usr/local/etc/php-fpm.conf
+              subPath: php-config.conf
+            - name: php-pool-config
+              mountPath: /usr/local/etc/php-fpm.d/zz-www.conf
+              subPath: php-pool-config.conf
+            - name: pimcore-data
+              mountPath: /var/www/pimcore
+              subPath: {{ .Values.pvc.data.subPath }}
+            {{- include "pimcore.customConfigFiles.volumeMounts" . | nindent 12 }}
+      volumes:
+      - name: pimcore-data
+        persistentVolumeClaim:
+          claimName: {{ template "pimcore.dataClaimName" . }}
+      - name: php-ini
+        configMap:
+          name: {{ template "pimcore.fullname" . }}-phpfpm-ini
+      - name: php-config
+        configMap:
+          name: {{ template "pimcore.fullname" . }}-phpfpm-conf
+      - name: php-pool-config
+        configMap:
+          name: {{ template "pimcore.fullname" . }}-phpfpm-pool-conf
+      {{- include "pimcore.customConfigFiles.volumes" . | nindent 6 }}

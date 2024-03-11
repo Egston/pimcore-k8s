@@ -1,0 +1,4 @@
+/custom-hooks/*
+!/custom-hooks/README.md
+.helmsman-tmp/
+.env

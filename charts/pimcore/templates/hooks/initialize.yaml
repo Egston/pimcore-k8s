@@ -1,0 +1,90 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "pimcore.fullname" . }}-initialize
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    # has to be run before install hook
+    "helm.sh/hook-weight": "-6"
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        app.kubernetes.io/name: {{ include "pimcore.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}-install
+    spec:
+      {{- with .Values.php.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pimcore.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.php.image.registry }}:{{ .Values.php.image.tag }}"
+          imagePullPolicy: {{ .Values.php.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+          - |
+            set -e
+            USE_CUSTOM_CONFIG_FILES={{ include "pimcore.useCustomConfigFiles" . }}
+            if [ "$USE_CUSTOM_CONFIG_FILES" = "true" ]; then
+              echo "Using custom config files from ConfigMaps."
+            else
+              echo "Using default config files."
+            fi
+
+            if [ -e "/var/www/pimcore/var/installed" ]; then
+              echo "Pimcore is already installed. Skipping initialization.";
+              exit 0;
+            fi
+
+            if [ "$(ls -A /var/www/pimcore)" ]; then
+                echo "Pimcore destination directory is not empty. Aborting project initialization.";
+                exit 1;
+            fi
+              
+            echo "Initializing Pimcore project...";
+
+            cd /var/www/pimcore
+              
+            COMPOSER_MEMORY_LIMIT=-1 \
+            composer create-project {{ .Values.pimcore.createProject }} . --no-cache
+
+            # Replace all config files that should be replaced with ConfigMaps
+            {{- include "pimcore.overrideCustomConfigFiles" . | nindent 12 }}
+          securityContext:
+            runAsUser: {{ .Values.php.phpUser.uid }}
+            runAsGroup: {{ .Values.php.phpUser.gid }}
+          resources:
+            {{- toYaml .Values.installation.resources | nindent 12 }}
+          volumeMounts:
+            - name: php-ini
+              mountPath: /usr/local/etc/php/php.ini
+              subPath: php.ini
+            - name: php-config
+              mountPath: /usr/local/etc/php-fpm.conf
+              subPath: php-config.conf
+            - name: php-pool-config
+              mountPath: /usr/local/etc/php-fpm.d/zz-www.conf
+              subPath: php-pool-config.conf
+            - name: pimcore-data
+              mountPath: /var/www/pimcore
+              subPath: {{ .Values.pvc.data.subPath }}
+      volumes:
+      - name: pimcore-data
+        persistentVolumeClaim:
+          claimName: {{ template "pimcore.dataClaimName" . }}
+      - name: php-ini
+        configMap:
+          name: {{ template "pimcore.fullname" . }}-phpfpm-ini
+      - name: php-config
+        configMap:
+          name: {{ template "pimcore.fullname" . }}-phpfpm-conf
+      - name: php-pool-config
+        configMap:
+          name: {{ template "pimcore.fullname" . }}-phpfpm-pool-conf

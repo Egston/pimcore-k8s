@@ -1,0 +1,65 @@
+{{- $fullName := include "pimcore.fullname" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pimcore.fullname" . }}-nginx
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.nginx.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "pimcore.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}-nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "pimcore.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}-nginx
+      annotations:
+        checksum/serverblock: {{ include (print $.Template.BasePath "/nginx/configmap/serverblock.yaml") . | sha256sum }}
+    spec:
+    {{- with .Values.nginx.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      serviceAccountName: {{ include "pimcore.serviceAccountName" . }}
+      initContainers:
+        # wait for pimcore to be installed because we need the SubPath in volumeMounts
+        # already exist when the container starts
+        {{- include "pimcore.initContainers.wait-for-pimcore-installed" . | nindent 12 }}
+      containers:
+        - name: nginx
+          image: "{{ .Values.nginx.image.registry }}:{{ .Values.nginx.image.tag }}"
+          imagePullPolicy: {{ .Values.nginx.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+          resources:
+            {{- toYaml .Values.nginx.resources | nindent 12 }}
+          volumeMounts:
+              - mountPath: /etc/nginx/conf.d
+                name: server-block
+              {{- range .Values.nginx.sharedFolders }}
+              - name: pimcore-data
+                mountPath: /var/www/pimcore/{{ . }}
+                subPath: {{ $.Values.pvc.data.subPath }}/{{ . }}
+              {{- end }}
+      volumes:
+        - name: server-block
+          configMap:
+              name: {{ include "pimcore.fullname" . }}-nginx-server-block
+        - name: pimcore-data
+          persistentVolumeClaim:
+            claimName: {{ template "pimcore.dataClaimName" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

@@ -1,0 +1,22 @@
+{{- $fullName := include "pimcore.fullname" . }}
+{{- range $name, $config := .Values.pimcore.customConfigFiles }}
+  {{- if $config.enabled }}
+    {{- $fileContent := ($.Files.Get $config.localPath) }}
+    {{- if ne $fileContent "" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullName }}-{{ $name }}
+  annotations:
+    "createdFrom": "{{ $config.localPath }}"
+  labels:
+    {{- include "pimcore.labels" $ | nindent 4 }}
+data:
+  {{ $name }}: |
+{{ $fileContent | indent 4 }}
+    {{- else }}
+      {{- fail (printf "Required file %s for configMap %s not found" $config.localPath $name) }}
+    {{- end }}
+  {{- end }}
+---
+{{- end }}

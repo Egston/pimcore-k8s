@@ -1,0 +1,162 @@
+replicaCount: 1
+
+nameOverride: ""
+fullnameOverride: ""
+
+pimcore:
+  tag: main
+  appEnv: dev
+  appSecret: ChangeMe123!
+  databaseURL: mysql://pimcore:pimcore@mysql-mariadb.pimcore.svc.cluster.local:3306/app?serverVersion=5.7
+  redisServer: redis-master.pimcore.svc.cluster.local
+
+  # composer create-project pimcore/demo
+  # composer create-project pimcore/skeleton
+  # Note: update customConfigFiles below if you change the project type
+  createProject: pimcore/skeleton
+
+  username: admin
+  password: ChangeMe123!
+
+  db:
+    name: pimcore
+    host: mysql-mariadb.pimcore.svc.cluster.local
+    port: 3306
+    username: pimcore
+    password: ChangeMe123!
+
+  customConfigFiles:
+    config-yaml:
+      enabled: false
+      localPath: "pimcore-config/skeleton/config.yaml"
+      containerPath: config/config.yaml
+    bundles-php:
+      enabled: false
+      localPath: "pimcore-config/skeleton/bundles.php"
+      containerPath: config/bundles.php
+
+php:
+  imagePullSecrets: []
+  image:
+    pullPolicy: Always
+    # defaults to official pimcore PHP image(s), see:
+    # - https://hub.docker.com/r/pimcore/pimcore/tags
+    # - https://github.com/pimcore/docker
+    # It's based on Debian
+    registry: pimcore/pimcore
+    tag: php8.2-latest
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 9000
+  # user and group for the PHP-FPM and installation/maintenance jobs
+  # this user must also exist in the PHP-FPM image
+  phpUser:
+    userName: www-data
+    uid: 33
+    groupName: www-data
+    gid: 33
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: 4
+      memory: 2Gi
+      ephemeral-storage: 10Gi
+
+nginx:
+  imagePullSecrets: []
+  image:
+    pullPolicy: Always
+    registry: nginx
+    tag: 1.25.4-alpine
+  replicas: 1
+  tag: master
+  service:
+    type: ClusterIP
+    port: 80
+  annotations:
+    "cloud.google.com/neg": '{"ingress": true}'
+  resources:
+    requests:
+      cpu: 10m
+      memory: 8Mi
+      ephemeral-storage: 256Mi
+    limits:
+      cpu: 50m
+      memory: 32Mi
+      ephemeral-storage: 256Mi
+  clientMaxBodySize: 100m
+  sharedFolders:
+    - public
+    # bundles assets
+    - vendor/pimcore
+
+installation:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 512Mi
+    limits:
+      cpu: 4
+      memory: 2Gi
+      ephemeral-storage: 1Gi
+
+maintenance:
+  cronjob: {}
+  worker:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+        ephemeral-storage: 1Gi
+      limits:
+        cpu: 4
+        memory: 2Gi
+        ephemeral-storage: 10Gi
+
+pvc:
+  data:
+    ## @param pvc.data.existingClaim Name of an existing `PersistentVolumeClaim`
+    ## for Pimcore installation and data
+    ## NOTE: When it's set the rest of the `pvc.data.*` apart from `pvc.data.subPath`
+    ## are ignored
+    ##
+    existingClaim: ""  # if set other pvc.data.* are ignored
+    ## @param pvc.data.subPath SubPath within the volume to mount as /var/www/pimcore
+    ##
+    subPath: pimcore
+    name: data
+    storage: 10Gi
+    accessMode: ReadWriteMany
+    storageClass: ""
+
+serviceAccount:
+  create: true
+  annotations: { }
+  name: ""
+
+podAnnotations: { }
+
+podSecurityContext: { }
+
+securityContext: { }
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: { }
+
+tolerations:
+  nginx:
+  php:
+  maintenance:
+
+affinity: { }

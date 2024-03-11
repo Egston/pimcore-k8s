@@ -1,0 +1,21 @@
+{{- $fullName := include "pimcore.fullname" . }}
+{{- range $_, $pvc := .Values.pvc }}
+{{- if not $pvc.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullName }}-{{ $pvc.name }}
+  labels:
+    {{- include "pimcore.labels" $ | nindent 4 }}
+spec:
+  accessModes:
+    - {{ $pvc.accessMode | quote }}
+  {{- if $pvc.storageClass }}
+  storageClassName: {{ $pvc.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $pvc.storage }}
+---
+{{- end }}
+{{- end }}

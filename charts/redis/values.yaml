@@ -1,0 +1,31 @@
+## Redis&reg; Authentication parameters
+## ref: https://github.com/bitnami/containers/tree/main/bitnami/redis#setting-the-server-password-on-first-run
+##
+auth:
+  ## @param auth.password Redis&reg; password
+  ## Defaults to a random 10-character alphanumeric string if not set
+  ##
+  password: "ChangeMe123!"
+
+## @section Redis&reg; master configuration parameters
+##
+master:
+  ## @param replica.extraFlags Array with additional command line flags for Redis&reg; replicas
+  ## Values suggested by https://pimcore.com/docs/platform/Pimcore/Development_Tools_and_Details/Cache/
+  ##
+  extraFlags:
+    - "--maxmemory-policy volatile-lru"
+    - "--maxmemory 768mb"
+
+## @section Redis&reg; replicas configuration parameters
+##
+replica:
+  ## @param replica.replicaCount Number of Redis&reg; replicas to deploy
+  ##
+  replicaCount: 1
+  ## @param replica.extraFlags Array with additional command line flags for Redis&reg; replicas
+  ## Values suggested by https://pimcore.com/docs/platform/Pimcore/Development_Tools_and_Details/Cache/
+  ##
+  extraFlags:
+    - "--maxmemory-policy volatile-lru"
+    - "--maxmemory 768mb"

@@ -1,0 +1,74 @@
+settings:
+  kubeContext: "minikube"
+  globalMaxHistory: 5
+  globalHooks:
+    preInstall: "../hooks/minikube-pre-install.sh"
+    postInstall: "../hooks/minikube-post-install.sh"
+    preUpgrade: "../hooks/minikube-pre-upgrade.sh"
+    postUpgrade: "../hooks/minikube-post-upgrade.sh"
+    preDelete: "../hooks/minikube-pre-delete.sh"
+    postDelete: "../hooks/minikube-post-delete.sh"
+
+helmRepos:
+  bitnami: "https://charts.bitnami.com/bitnami"
+  nginx: "https://helm.nginx.com/stable"
+
+namespaces:
+  pimcore:
+    protected: false
+
+apps:
+  mysql:
+    namespace: "pimcore"
+    enabled: true
+    chart: "bitnami/mariadb"
+    version: 16.4.0
+    valuesFile: "../../charts/mysql/values.yaml"
+    priority: -1
+    set:
+      auth.rootPassword: "$DB_ROOT_PASSWORD"
+      auth.password: "$DB_PASSWORD"
+      auth.replicationPassword: "$DB_REPLICATION_PASSWORD"
+      primary.persistence.enabled: true
+      primary.persistence.size: "10Gi"
+      # if you want to use custom storageClass, e.g. with Retain policy and expandable
+      # primary.persistence.storageClass: "pimcore-minikube-retained"
+
+  redis:
+    namespace: "pimcore"
+    enabled: true
+    chart: "bitnami/redis"
+    version: 18.16.1
+    valuesFile: "../../charts/redis/values.yaml"
+    priority: -1
+    set:
+      auth.password: "$REDIS_PASSWORD"
+
+  pimcore:
+    namespace: "pimcore"
+    enabled: true
+    chart: "../../charts/pimcore"
+    version: 0.1.0
+    valuesFile: "../../charts/pimcore/values.yaml"
+    helmFlags:
+      # long timeout, because Pimcore installation can take a while
+      - "--timeout=20m"
+    set:
+      createProject: "pimcore/demo"
+      pimcore.appSecret: "$APP_SECRET"
+      pimcore.password: "$ADMIN_PASSWORD"
+      pimcore.db.password: "$DB_PASSWORD"
+
+      # if you have existing claim, or keep empty to create a new claim
+      pvc.data.existingClaim: ""
+      pvc.data.subPath: "pimcore"
+
+      # if you want to use custom storageClass, e.g. with Retain policy and expandable;
+      # does need to allow RWX (ReadWriteMany) access
+      # pvc.data.storageClass: "pimcore-minikube-retained"
+      # pvc.data.storage: "2Gi"
+
+      # if you want to use configMaps as Pimcore configfiles;
+      # otherwise you need to edit the config files in the created PV
+      pimcore.customConfigFiles.config-yaml.enabled: true
+      pimcore.customConfigFiles.bundles-php.enabled: true

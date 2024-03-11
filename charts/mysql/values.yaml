@@ -1,0 +1,44 @@
+## Mariadb Primary parameters
+##
+primary:
+  ## @param primary.containerPorts.mysql Container port for mysql
+  ##
+  containerPorts:
+    mysql: 3306
+  ## @param primary.configuration [string] MariaDB Primary configuration to be injected as ConfigMap
+  ## ref: https://mysql.com/kb/en/mysql/configuring-mysql-with-mycnf/#example-of-configuration-file
+  ##
+  configuration: |-
+    [mysqld]
+    skip-name-resolve
+    explicit_defaults_for_timestamp
+    basedir=/opt/bitnami/mariadb
+    datadir=/bitnami/mariadb/data
+    plugin_dir=/opt/bitnami/mariadb/plugin
+    port={{ .Values.primary.containerPorts.mysql }}
+    socket=/opt/bitnami/mariadb/tmp/mysql.sock
+    tmpdir=/opt/bitnami/mariadb/tmp
+    max_allowed_packet=256M
+    bind-address=0.0.0.0
+    pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+    log-error=/opt/bitnami/mariadb/logs/mysqld.log
+    character-set-server=utf8mb4
+    collation-server=utf8mb4_unicode_ci
+    slow_query_log=0
+    long_query_time=10.0
+
+## MariaDB Authentication parameters
+##
+auth:
+  ## @param auth.database Name for a custom database to create
+  ## ref: https://github.com/bitnami/containers/blob/main/bitnami/mariadb/README.md#creating-a-database-on-first-run
+  ##
+  database: "pimcore"
+  ## @param auth.username Name for a custom user to create
+  ## ref: https://github.com/bitnami/containers/blob/main/bitnami/mariadb/README.md#creating-a-database-user-on-first-run
+  ##
+  username: "pimcore"
+  ## @param auth.replicationUser MariaDB replication user
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/mariadb#setting-up-a-replication-cluster
+  ##
+  replicationUser: replicator

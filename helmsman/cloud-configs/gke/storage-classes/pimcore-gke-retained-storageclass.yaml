@@ -1,0 +1,10 @@
+# FIXME: we need RWX for the PVC and GKE doesn't support RWX storage classes
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: pimcore-gke-retained
+provisioner: kubernetes.io/gce-pd
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+parameters:
+  type: pd-standard

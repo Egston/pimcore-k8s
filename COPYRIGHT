@@ -1,0 +1,16 @@
+Copyright: 2021, Bruno Ramalho <bramalho@divante.pl> (original work)
+           and contributors
+
+With contributions from various individuals and entities. For a full
+list of contributors, refer to the git history of the project.
+
+This project is heavily inspired by and based on
+https://github.com/DivanteLtd/pimcore-helm-chart. It is freely
+distributed and modified under the terms of the GNU General Public License
+(GPL-3.0), which is included in this distribution in the file named
+"LICENSE". For more details, see <http://www.gnu.org/licenses/>.
+
+The GNU General Public License (GPL-3.0) allows for free distribution
+and modification under certain conditions, without any warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the "LICENSE"
+file for more details.

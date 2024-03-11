@@ -1,0 +1,159 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pimcore.fullname" . }}-nginx-server-block
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+data:
+  default.conf: |
+    upstream php-pimcore {
+      server {{ include "pimcore.fullname" . }}-php:9000;
+    }
+
+    server {
+      listen 80;
+      server_name _;
+      root /var/www/pimcore/public;
+      index index.php;
+
+      access_log  /var/log/nginx/access.log;
+      error_log   /var/log/nginx/error.log error;
+
+      client_max_body_size {{ .Values.nginx.clientMaxBodySize }};
+
+
+      # Protected Assets
+      #
+      ### 1. Option - Restricting access to certain assets completely
+      #
+      # location ~ ^/protected/.* {
+      #   return 403;
+      # }
+      # location ~ ^/var/.*/protected(.*) {
+      #   return 403;
+      # }
+      #
+      # location ~ ^/cache-buster\-[\d]+/protected(.*) {
+      #   return 403;
+      # }
+      #
+      ### 2. Option - Checking permissions before delivery
+      #
+      # rewrite ^(/protected/.*) /index.php$is_args$args last;
+      #
+      # location ~ ^/var/.*/protected(.*) {
+      #   return 403;
+      # }
+      #
+      # location ~ ^/cache-buster\-[\d]+/protected(.*) {
+      #   return 403;
+      # }
+
+      # Pimcore Head-Link Cache-Busting
+      rewrite ^/cache-buster-(?:\d+)/(.*) /$1 last;
+
+      add_header Content-Security-Policy upgrade-insecure-requests;
+
+      # Stay secure
+      #
+      # a) don't allow PHP in folders allowing file uploads
+
+      location ~* /var/assets/.*\.php(/|$) {
+        return 404;
+      }
+
+      # b) Prevent clients from accessing hidden files (starting with a dot)
+      # Access to `/.well-known/` is allowed.
+      # https://www.mnot.net/blog/2010/04/07/well-known
+      # https://tools.ietf.org/html/rfc5785
+
+      location ~* /\.(?!well-known/) {
+        deny all;
+        log_not_found off;
+        access_log off;
+      }
+
+      # c) Prevent clients from accessing to backup/config/source files
+
+      location ~* (?:\.(?:bak|conf(ig)?|dist|fla|in[ci]|log|psd|sh|sql|sw[op])|~)$ {
+          deny all;
+      }
+
+      # Some Admin modules need this:
+      # Server Info, Opcache
+
+      location ~* ^/admin/(adminer|external) {
+        rewrite .* /index.php$is_args$args last;
+      }
+
+      # Thumbnails
+
+      location ~* .*/(image|video)-thumb__\d+__.* {
+        try_files /var/tmp/thumbnails$uri /index.php;
+        expires 2w;
+        access_log off;
+        add_header Cache-Control "public";
+      }
+
+      # Assets
+      # Still use a allowlist approach to prevent each and every missing asset to go through the PHP Engine.
+      # If you are using remote storages like S3 or Google Cloud Storage, this doesn't work. You either deactivate it and handle it in PHP
+      # or redirect these suffixes directly to your CDN URL. Additionally you should configure the frontend url prefixes accordingly, see: https://pimcore.com/docs/pimcore/current/Development_Documentation/Installation_and_Upgrade/System_Setup_and_Hosting/File_Storage_Setup.html
+
+      location ~* ^(?!/admin|/asset/webdav)(.+?)\.((?:css|js)(?:\.map)?|jpe?g|gif|png|svgz?|eps|exe|gz|zip|mp\d|m4a|ogg|ogv|webp|webm|pdf|docx?|xlsx?|pptx?)$ {
+          try_files /var/assets$uri $uri =404;
+          expires 2w;
+          access_log off;
+          log_not_found off;
+          add_header Cache-Control "public";
+      }
+
+      location / {
+        error_page 404 /meta/404;
+        try_files $uri /index.php$is_args$args;
+      }
+
+      location /api/graphql {
+          auth_basic off;
+          error_page 404 /meta/404;
+          try_files $uri /app.php$is_args$args;
+      }
+
+      location /api/graphql/explorer {
+          auth_basic off;
+          error_page 404 /meta/404;
+          try_files $uri /app.php$is_args$args;
+      }
+
+      location ~ ^/index\.php(/|$) {
+        send_timeout 1800;
+        fastcgi_read_timeout 1800;
+        fastcgi_send_timeout 1800;
+
+        # regex to split $uri to $fastcgi_script_name and $fastcgi_path_info
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+
+        # Check that the PHP script exists before passing it
+        try_files $fastcgi_script_name =404;
+
+        include fastcgi.conf;
+
+        # Bypass the fact that try_files resets $fastcgi_path_info
+        # see: http://trac.nginx.org/nginx/ticket/321
+        set $path_info $fastcgi_path_info;
+        fastcgi_param PATH_INFO $path_info;
+
+        # Activate these, if using Symlinks and opcache
+        # fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        # fastcgi_param DOCUMENT_ROOT $realpath_root;
+
+        fastcgi_pass php-pimcore;
+        fastcgi_param TRUSTED_PROXIES 10.0.0.0/16;
+        fastcgi_param HTTP_X_FORWARDED_FOR $http_x_real_ip;
+
+        # Prevents URIs that include the front controller. This will 404:
+        # http://domain.tld/index.php/some-path
+        # Remove the internal directive to allow URIs like this
+        internal;
+      }
+    }

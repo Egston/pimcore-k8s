@@ -1,0 +1,9 @@
+#!/bin/sh
+
+kubectl create namespace pimcore
+
+kubectl apply -f gcp-filestore-data-staging-pv.yaml
+kubectl apply -f gcp-filestore-data-staging-pvc.yaml
+
+# kubectl apply -f ingress-internal-ip.yaml
+kubectl apply -f ingress-external-ip.yaml

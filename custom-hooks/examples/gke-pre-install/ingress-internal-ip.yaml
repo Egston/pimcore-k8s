@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: pimcore-staging-internal
+  name: pimcore-ingress
+  namespace: pimcore
+spec:
+  ingressClassName: gce-internal
+  rules:
+    - host: pimcore-staging.company.example
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pimcore-nginx
+                port:
+                  number: 80

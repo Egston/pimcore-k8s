@@ -4,6 +4,8 @@ Into this directory you can add custom Helmsman hooks. The directory is in the
 `.gitignore` file, so you can add your custom hooks without worrying about
 pushing them to the repository.
 
+See examples in the [examples](examples) directory.
+
 You can add custom hooks to the following directories:
 `./_common/<LIFECYCLE_EVENT>`
 `./<CLOUD_PROVIDER>-<LIFECYCLE_EVENT>`

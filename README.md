@@ -30,7 +30,8 @@ work, which laid the groundwork for this fork.
 
 ### 2. Optional: Create custom Helmsman hooks
 
-See [custom-hooks/README.md](custom-hooks/README.md)
+See the [custom-hooks/README.md](custom-hooks/README.md) and examples
+in the [custom-hooks/examples](custom-hooks/examples) directory.
 
 Tip: Use pre-install hooks to create Kubernetes resources such as Ingresses,
 load balancers or custom PV, PVCs or StorageClasses.

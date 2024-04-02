@@ -20,7 +20,7 @@ work, which laid the groundwork for this fork.
   
   [1]: https://github.com/DivanteLtd/pimcore-helm-chart
 
-## Usage
+## Basic usage
 
 ### 1. Generate .env file with secrets
 
@@ -45,4 +45,28 @@ this by setting the `HELMSMAN_CUSTOM_HOOKS_DIR` environment variable.
 helmsman -apply -f helmsman/dsf/minikube.yaml
 # or
 helmsman -apply -f helmsman/dsf/gke.yaml
+```
+
+## Using as a submodule in your private repository
+
+You can use this repository as a submodule in your private repository.
+You can set HELMSMAN_CUSTOM_HOOKS_DIR env. variable to absolute path of
+you custom hooks directory.
+
+Example for GKE:
+
+```shell
+git init .
+git submodule add https://github.com/Egston/pimcore-k8s.git pimcore-k8s
+
+cp -r pimcore-k8s/custom-hooks/examples/ custom-hooks/
+# edit custom-hooks/gke-*/
+
+./pimcore-k8s/scripts/generate-dotenv.py
+echo 'GKE_KUBE_CONTEXT="..."' >> .env
+gcloud secrets create your-env-secret-name --data-file=.env
+# retrieve by: (umask 0077; gcloud secrets versions access latest --secret="your-env-secret-name" > .env)
+
+export HELMSMAN_CUSTOM_HOOKS_DIR="$PWD/custom-hooks/"
+helmsman -apply -f pimcore-k8s/helmsman/dsf/gke.yaml
 ```

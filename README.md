@@ -36,6 +36,9 @@ in the [custom-hooks/examples](custom-hooks/examples) directory.
 Tip: Use pre-install hooks to create Kubernetes resources such as Ingresses,
 load balancers or custom PV, PVCs or StorageClasses.
 
+By default hooks are read from the `custom-hooks` directory. You can override
+this by setting the `HELMSMAN_CUSTOM_HOOKS_DIR` environment variable.
+
 ### 3. Run Helmsman with selected DSF
 
 ```shell

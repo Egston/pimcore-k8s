@@ -32,11 +32,13 @@ run_user_hooks() {
     fi
 }
 
-# Paths for common and cloud provider-specific custom hooks
-PROJECT_ROOT=$(realpath "${BASE_DIR}/../..")
-COMMON_HOOK_DIR="${PROJECT_ROOT}/custom-hooks/_common/${LIFECYCLE_EVENT}"
-CLOUD_SPECIFIC_HOOK_DIR="${PROJECT_ROOT}/custom-hooks/${CLOUD_PROVIDER}-${LIFECYCLE_EVENT}"
+# Determine directory with custom hooks (either $HELMSMAN_CUSTOM_HOOKS_DIR env.
+# variable or <REPO_ROOT>/custom-hooks)
+REPO_ROOT=$(realpath "${BASE_DIR}/../..")
+CUSTOM_HOOKS_DIR="${HELMSMAN_CUSTOM_HOOKS_DIR:-${REPO_ROOT}/custom-hooks}"
 
-# Execute hooks
+# Run common and cloud provider-specific custom hooks
+COMMON_HOOK_DIR="${CUSTOM_HOOKS_DIR}/_common/${LIFECYCLE_EVENT}"
+CLOUD_SPECIFIC_HOOK_DIR="${CUSTOM_HOOKS_DIR}/${CLOUD_PROVIDER}-${LIFECYCLE_EVENT}"
 run_user_hooks "$COMMON_HOOK_DIR"
 run_user_hooks "$CLOUD_SPECIFIC_HOOK_DIR"

@@ -60,7 +60,7 @@ apps:
       pimcore.db.password: "$DB_PASSWORD"
 
       # if you have existing claim, or keep empty to create a new claim
-      pvc.data.existingClaim: "pimcore-intellidata-home-dev-claim"
+      pvc.data.existingClaim: ""
       pvc.data.subPath: "pimcore"
 
       # if you want to use custom storageClass, e.g. with Retain policy and expandable;

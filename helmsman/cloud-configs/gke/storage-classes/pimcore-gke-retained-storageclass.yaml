@@ -1,4 +1,3 @@
-# FIXME: we need RWX for the PVC and GKE doesn't support RWX storage classes
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:

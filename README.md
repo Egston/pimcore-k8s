@@ -70,3 +70,20 @@ gcloud secrets create your-env-secret-name --data-file=.env
 export HELMSMAN_CUSTOM_HOOKS_DIR="$PWD/custom-hooks/"
 helmsman -apply -f pimcore-k8s/helmsman/dsf/gke.yaml
 ```
+
+## Maintenance Shell
+
+There is a maintenance shell deployment by default called
+`pimcore-maintenance-shell` having 0 replicas initially. You can scale
+it to 1 to run maintenance commands.
+
+```shell
+kubectl scale deployment/pimcore-maintenance-shell --replicas=1
+kubectl exec -it deployment/pimcore-maintenance-shell -- bash
+
+cd /var/www/pimcore
+bin/console ...
+logout
+
+kubectl scale deployment/pimcore-maintenance-shell --replicas=0
+```

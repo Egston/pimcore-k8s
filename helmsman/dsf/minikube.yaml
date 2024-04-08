@@ -54,7 +54,8 @@ apps:
       # long timeout, because Pimcore installation can take a while
       - "--timeout=20m"
     set:
-      createProject: "pimcore/demo"
+      # if you change the project type, you may need to change the customConfigFiles
+      pimcore.createProject: "pimcore/demo"
       pimcore.appSecret: "$APP_SECRET"
       pimcore.password: "$ADMIN_PASSWORD"
       pimcore.db.password: "$DB_PASSWORD"

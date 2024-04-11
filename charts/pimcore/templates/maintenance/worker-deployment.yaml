@@ -57,7 +57,7 @@ spec:
               mountPath: /usr/local/etc/php-fpm.conf
               subPath: php-config.conf
             - name: php-pool-config
-              mountPath: /usr/local/etc/php-fpm.d/zz-www.conf
+              mountPath: /usr/local/etc/php-fpm.d/zzzz-www.conf
               subPath: php-pool-config.conf
             - name: pimcore-data
               mountPath: /var/www/pimcore

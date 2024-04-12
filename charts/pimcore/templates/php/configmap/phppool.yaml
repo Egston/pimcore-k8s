@@ -8,11 +8,14 @@ data:
   php-pool-config.conf: |
     [www]
     user = {{ .Values.php.phpUser.userName }}
-    group = {{ .Values.php.phpUser.userGroup }}
+    group = {{ .Values.php.phpUser.groupName }}
     listen = 0.0.0.0:9000
-    pm = dynamic
-    pm.start_servers = 3
-    pm.min_spare_servers = 2
-    pm.max_spare_servers = 4
-    pm.max_children = 50
-    pm.max_requests = 200
+    {{- with .Values.php.fpmPool }}
+    pm = {{ .pm }}
+    pm.max_children = {{ .pmMaxChildren }}
+    pm.start_servers = {{ .pmStartServers }}
+    pm.min_spare_servers = {{ .pmMinSpareServers }}
+    pm.max_spare_servers = {{ .pmMaxSpareServers }}
+    pm.max_requests = {{ .pmMaxRequests }}
+    pm.process_idle_timeout = {{ .pmProcessIdleTimeout }}
+    {{- end }}

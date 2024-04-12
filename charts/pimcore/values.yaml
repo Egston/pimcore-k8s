@@ -56,6 +56,14 @@ php:
     uid: 33
     groupName: www-data
     gid: 33
+  fpmPool:
+    pm: dynamic
+    pmMaxChildren: 50
+    pmStartServers: 3
+    pmMinSpareServers: 2
+    pmMaxSpareServers: 4
+    pmMaxRequests: 200
+    pmProcessIdleTimeout: 10s
   resources:
     requests:
       cpu: 500m

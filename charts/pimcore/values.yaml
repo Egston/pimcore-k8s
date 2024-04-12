@@ -58,11 +58,11 @@ php:
     gid: 33
   fpmPool:
     pm: dynamic
-    pmMaxChildren: 50
+    pmMaxChildren: 100
     pmStartServers: 3
-    pmMinSpareServers: 2
-    pmMaxSpareServers: 4
-    pmMaxRequests: 200
+    pmMinSpareServers: 3
+    pmMaxSpareServers: 8
+    pmMaxRequests: 10000
     pmProcessIdleTimeout: 10s
   resources:
     requests:

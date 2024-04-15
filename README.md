@@ -69,7 +69,9 @@ gcloud secrets create your-env-secret-name --data-file=.env
 
 export HELMSMAN_CUSTOM_HOOKS_DIR="$PWD/custom-hooks/"
 helmsman -apply -f pimcore-k8s/helmsman/dsf/gke.yaml
-```
+
+# or copy and edit the DSF file and invoke it instead the upstream one
+# (don't forget to update paths in the DSF copy)
 
 ## Maintenance Shell
 

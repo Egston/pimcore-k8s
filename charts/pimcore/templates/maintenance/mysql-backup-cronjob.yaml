@@ -1,0 +1,90 @@
+{{- if .Values.maintenance.mysqlBackup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "pimcore.fullname" . }}-maintenance-mysql-backup
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+spec:
+  schedule: "@daily"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 60
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: {{ include "pimcore.name" . }}
+            app.kubernetes.io/instance: {{ .Release.Name }}-maintenance-mysql-backup
+        spec:
+          {{- with .Values.maintenance.mysqlBackup.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          restartPolicy: OnFailure
+          initContainers:
+            {{- include "pimcore.initContainers.wait-for-mysql" . | nindent 12 }}
+          containers:
+            - name: mysql-backup
+              image: "{{ .Values.maintenance.mysqlBackup.image.registry }}:{{ .Values.maintenance.mysqlBackup.image.tag }}"
+              imagePullPolicy: {{ .Values.maintenance.mysqlBackup.image.pullPolicy }}
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  DBNAME={{ .Values.pimcore.db.name | quote }}
+                  BACKUP_DIR="/backup"
+                  TODAY=$(date +%Y-%m-%d)
+                  DAY_OF_WEEK=$(date +%u)
+                  TOMORROW=$(date --date='tomorrow' +%Y-%m-%d)
+                  FILENAME="$BACKUP_DIR/$DBNAME-$TODAY.sql"
+
+                  # Perform daily backup
+                  echo "Creating backup of $DBNAME to $FILENAME"
+                  mysqldump \
+                    -h {{ .Values.pimcore.db.host | quote }} \
+                    -u {{ .Values.pimcore.db.username | quote }} \
+                    -p{{ .Values.pimcore.db.password | quote }} \
+                    {{ .Values.pimcore.db.name | quote }} \
+                     > $FILENAME
+                  echo "Backup done"
+
+                  # Weekly backup on Sunday
+                  if [ "$DAY_OF_WEEK" -eq 7 ]; then
+                    cp $FILENAME "$BACKUP_DIR/weekly-$DBNAME-$TODAY.sql"
+                  fi
+
+                  # Monthly backup on the last day of the month
+                  if [ $(date --date='tomorrow' +%m) != $(date +%m) ]; then
+                    cp $FILENAME "$BACKUP_DIR/monthly-$DBNAME-$TODAY.sql"
+                  fi
+
+                  echo "Cleanup old backups"
+                  # Cleanup old backups, keep daily backups for 7 days, weekly for 30 days, monthly for 365 days
+                  find $BACKUP_DIR -type f -name "$DBNAME-*.sql" -mtime +7 -exec rm {} \;
+                  find $BACKUP_DIR -type f -name "weekly-$DBNAME-*.sql" -mtime +30 -exec rm {} \;
+                  find $BACKUP_DIR -type f -name "monthly-$DBNAME-*.sql" -mtime +365 -exec rm {} \;
+                  echo "Cleanup done"
+
+              resources:
+              {{- toYaml .Values.maintenance.mysqlBackup.resources | nindent 16 }}
+              volumeMounts:
+                - name: pimcore-mysql-backup
+                  mountPath: /backup
+                  subPath: {{ .Values.pvc.mysqlBackup.subPath }}
+          volumes:
+            - name: pimcore-mysql-backup
+              persistentVolumeClaim:
+                claimName: {{ template "pimcore.mysqlBackupClaimName" . }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 8 }}
+          {{- end }}
+        {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}

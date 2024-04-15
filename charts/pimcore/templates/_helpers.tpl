@@ -120,6 +120,17 @@ Create the name of the PVC to use as Pimcore installation
 {{- end }}
 
 {{/*
+Create the name of the PVC to use for storing Pimcore MySQL backup dumps
+*/}}
+{{- define "pimcore.mysqlBackupClaimName" -}}
+{{- if .Values.pvc.mysqlBackup.existingClaim }}
+{{- .Values.pvc.mysqlBackup.existingClaim }}
+{{- else }}
+{{- include "pimcore.fullname" $ }}-{{ .Values.pvc.mysqlBackup.name }}
+{{- end }}
+{{- end }}
+
+{{/*
 Returns 'true' if some of the pimcore.customConfigFiles is enabled
 */}}
 {{- define "pimcore.useCustomConfigFiles" -}}

@@ -138,6 +138,24 @@ maintenance:
         cpu: 4
         memory: 2Gi
         ephemeral-storage: 10Gi
+  mysqlBackup:
+    enabled: false
+    imagePullSecrets: []
+    image:
+      pullPolicy: Always
+      registry: mariadb
+      tag: 10.5
+    replicas: 1
+    resources:
+      requests:
+        cpu: 500m
+        # 2Gi is not enough at least for pimcore/demo
+        memory: 512Mi
+        ephemeral-storage: 1Gi
+      limits:
+        cpu: 4
+        memory: 2Gi
+        ephemeral-storage: 10Gi
 
 pvc:
   data:
@@ -153,6 +171,20 @@ pvc:
     name: data
     storage: 10Gi
     accessMode: ReadWriteMany
+    storageClass: ""
+  mysqlBackup:
+    ## @param pvc.mysql-backup.existingClaim Name of an existing `PersistentVolumeClaim`
+    ## for MySQL backups
+    ## NOTE: When it's set the rest of the `pvc.mysql-backup.*` apart from `pvc.mysql-backup.subPath`
+    ## are ignored
+    ##
+    existingClaim: ""  # if set other pvc.mysql-backup.* are ignored
+    ## @param pvc.mysql-backup.subPath SubPath within the volume to mount as /var/www/pimcore
+    ##
+    subPath: pimcore-mysql-backup
+    name: mysql-backup
+    storage: 10Gi
+    accessMode: ReadWriteOnce
     storageClass: ""
 
 serviceAccount:

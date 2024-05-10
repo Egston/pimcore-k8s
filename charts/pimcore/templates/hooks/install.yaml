@@ -34,25 +34,25 @@ spec:
                 name: {{ include "pimcore.fullname" . }}-dotenv
           command: ["/bin/sh", "-c"]
           args:
-          - |
-            set -e
+            - |
+              set -e
 
-            if [ -e "/var/www/pimcore/var/installed" ]; then
-              echo "Pimcore is already installed. Skipping installation.";
-            fi
+              if [ -e "/var/www/pimcore/var/installed" ]; then
+                echo "Pimcore is already installed. Skipping installation.";
+              fi
 
-            cd /var/www/pimcore
+              cd /var/www/pimcore
 
-            echo "Running pimcore-install ..."
-            ./vendor/bin/pimcore-install \
-              {{- with .Values.pimcore.db }}
-              --mysql-host-socket={{ .host }} \
-              --mysql-database={{ .name }} \
-              {{- end }}
-              --no-interaction
+              echo "Running pimcore-install ..."
+              ./vendor/bin/pimcore-install \
+                {{- with .Values.pimcore.db }}
+                --mysql-host-socket={{ .host }} \
+                --mysql-database={{ .name }} \
+                {{- end }}
+                --no-interaction
 
-              date --rfc-2822 > /var/www/pimcore/var/installed
-              echo "Done."
+                date --rfc-2822 > /var/www/pimcore/var/installed
+                echo "Done."
           securityContext:
             runAsUser: {{ .Values.php.phpUser.uid }}
             runAsGroup: {{ .Values.php.phpUser.gid }}

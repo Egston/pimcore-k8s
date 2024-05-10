@@ -41,8 +41,8 @@ spec:
           resources:
             {{- toYaml .Values.maintenance.shell.resources | nindent 12 }}
           envFrom:
-          - secretRef:
-              name: {{ include "pimcore.fullname" . }}-dotenv
+            - secretRef:
+                name: {{ include "pimcore.fullname" . }}-dotenv
           securityContext:
             runAsUser: {{ .Values.php.phpUser.uid }}
             runAsGroup: {{ .Values.php.phpUser.gid }}

@@ -44,8 +44,8 @@ spec:
           resources:
             {{- toYaml .Values.php.resources | nindent 12 }}
           envFrom:
-          - secretRef:
-              name: {{ include "pimcore.fullname" . }}-dotenv
+            - secretRef:
+                name: {{ include "pimcore.fullname" . }}-dotenv
           volumeMounts:
             - name: php-ini
               mountPath: /usr/local/etc/php/php.ini

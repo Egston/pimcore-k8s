@@ -38,14 +38,14 @@ spec:
           imagePullPolicy: {{ .Values.php.image.pullPolicy }}
           command: ["/bin/sh", "-c"]
           args:
-          - |
-            cd /var/www/pimcore
-            ./bin/console messenger:consume pimcore_core pimcore_maintenance pimcore_scheduled_tasks pimcore_image_optimize pimcore_asset_update --time-limit=300
+            - |
+              cd /var/www/pimcore
+              ./bin/console messenger:consume pimcore_core pimcore_maintenance pimcore_scheduled_tasks pimcore_image_optimize pimcore_asset_update --time-limit=300
           resources:
             {{- toYaml .Values.maintenance.worker.resources | nindent 12 }}
           envFrom:
-          - secretRef:
-              name: {{ include "pimcore.fullname" . }}-dotenv
+            - secretRef:
+                name: {{ include "pimcore.fullname" . }}-dotenv
           securityContext:
             runAsUser: {{ .Values.php.phpUser.uid }}
             runAsGroup: {{ .Values.php.phpUser.gid }}

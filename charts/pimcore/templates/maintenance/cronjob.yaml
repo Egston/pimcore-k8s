@@ -15,11 +15,11 @@ spec:
           labels:
             app.kubernetes.io/name: {{ include "pimcore.name" . }}
             app.kubernetes.io/instance: {{ .Release.Name }}-maintenance
-        annotations:
-          checksum/secret-env-vars: {{ include (print $.Template.BasePath "/secret/dotenv.yaml") . | sha256sum }}
-          checksum/phpfpmconf: {{ include (print $.Template.BasePath "/php/configmap/phpfpmconf.yaml") . | sha256sum }}
-          checksum/phpini: {{ include (print $.Template.BasePath "/php/configmap/phpini.yaml") . | sha256sum }}
-          checksum/phppool: {{ include (print $.Template.BasePath "/php/configmap/phppool.yaml") . | sha256sum }}
+          annotations:
+            checksum/secret-env-vars: {{ include (print $.Template.BasePath "/secret/dotenv.yaml") . | sha256sum }}
+            checksum/phpfpmconf: {{ include (print $.Template.BasePath "/php/configmap/phpfpmconf.yaml") . | sha256sum }}
+            checksum/phpini: {{ include (print $.Template.BasePath "/php/configmap/phpini.yaml") . | sha256sum }}
+            checksum/phppool: {{ include (print $.Template.BasePath "/php/configmap/phppool.yaml") . | sha256sum }}
         spec:
           {{- with .Values.php.imagePullSecrets }}
           imagePullSecrets:
@@ -34,14 +34,14 @@ spec:
               imagePullPolicy: {{ .Values.php.image.pullPolicy }}
               command: ["/bin/sh", "-c"]
               args:
-              - |
-                cd /var/www/pimcore
-                ./bin/console pimcore:maintenance
+                - |
+                  cd /var/www/pimcore
+                  ./bin/console pimcore:maintenance
               resources:
               {{- toYaml .Values.maintenance.cronjob.resources | nindent 16 }}
               envFrom:
-              - secretRef:
-                  name: {{ include "pimcore.fullname" . }}-dotenv
+                - secretRef:
+                    name: {{ include "pimcore.fullname" . }}-dotenv
               securityContext:
                 runAsUser: {{ .Values.php.phpUser.uid }}
                 runAsGroup: {{ .Values.php.phpUser.gid }}

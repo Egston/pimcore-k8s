@@ -18,6 +18,7 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}-nginx
       annotations:
         checksum/serverblock: {{ include (print $.Template.BasePath "/nginx/configmap/serverblock.yaml") . | sha256sum }}
+        checksum/nginx: {{ include (print $.Template.BasePath "/nginx/configmap/nginx.yaml") . | sha256sum }}
     spec:
     {{- with .Values.nginx.imagePullSecrets }}
       imagePullSecrets:
@@ -37,6 +38,9 @@ spec:
           resources:
             {{- toYaml .Values.nginx.resources | nindent 12 }}
           volumeMounts:
+              - mountPath: /etc/nginx/nginx.conf
+                name: nginx-config
+                subPath: nginx.conf
               - mountPath: /etc/nginx/conf.d
                 name: server-block
               {{- range .Values.nginx.sharedFolders }}
@@ -45,6 +49,9 @@ spec:
                 subPath: {{ $.Values.pvc.data.subPath }}/{{ . }}
               {{- end }}
       volumes:
+        - name: nginx-config
+          configMap:
+              name: {{ include "pimcore.fullname" . }}-nginx
         - name: server-block
           configMap:
               name: {{ include "pimcore.fullname" . }}-nginx-server-block

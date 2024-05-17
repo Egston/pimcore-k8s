@@ -36,17 +36,20 @@ spec:
         - name: maintenance-shell
           image: "{{ .Values.php.image.registry }}:{{ .Values.php.image.tag }}"
           imagePullPolicy: {{ .Values.php.image.pullPolicy }}
-          command: ["/bin/sh", "-c", "--"]
-          args: ["while true; do sleep 30; done;"]
+          tty: true
+          stdin: true
+          command: ['/bin/sh', '/scripts/entrypoint.sh']
           resources:
             {{- toYaml .Values.maintenance.shell.resources | nindent 12 }}
           envFrom:
             - secretRef:
                 name: {{ include "pimcore.fullname" . }}-dotenv
           securityContext:
-            runAsUser: {{ .Values.php.phpUser.uid }}
-            runAsGroup: {{ .Values.php.phpUser.gid }}
+            runAsUser: 0
+            runAsGroup: 0
           volumeMounts:
+            - name: scripts
+              mountPath: /scripts
             - name: php-ini
               mountPath: /usr/local/etc/php/php.ini
               subPath: php.ini
@@ -61,6 +64,9 @@ spec:
               subPath: {{ .Values.pvc.data.subPath }}
             {{- include "pimcore.customConfigFiles.volumeMounts" . | nindent 12 }}
       volumes:
+        - name: scripts
+          configMap:
+            name: {{ include "pimcore.fullname" . }}-maintenance-shell-init
         - name: pimcore-data
           persistentVolumeClaim:
             claimName: {{ template "pimcore.dataClaimName" . }}

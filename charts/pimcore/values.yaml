@@ -138,6 +138,19 @@ maintenance:
         cpu: 4
         memory: 2Gi
         ephemeral-storage: 10Gi
+    maintainer:
+      userName: maintainer
+      userId: 1000
+      groupName: developers
+      groupId: 1200
+    installPackages: ranger vim
+    entrypointAdditionalCommands: |
+      apt-get install -y git
+      su - maintainer -c "
+        git config --global --add safe.directory /var/www/pimcore;
+        git config --global user.name 'Pimcore Maintainer';
+        git config --global user.email 'maintainer@example.com';
+      "
   mysqlBackup:
     enabled: false
     imagePullSecrets: []

@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pimcore.fullname" . }}-maintenance-shell-init
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+data:
+  entrypoint.sh: |
+    #!/bin/sh
+
+    apt-get update
+    apt-get install -y acl sudo {{ .Values.maintenance.shell.installPackages }}
+
+    maintainer_group_name={{ .Values.maintenance.shell.maintainer.groupName }}
+    maintainer_group_id={{ .Values.maintenance.shell.maintainer.groupId }}
+    maintainer_user_name={{ .Values.maintenance.shell.maintainer.userName }}
+    maintainer_user_id={{ .Values.maintenance.shell.maintainer.userId }}
+
+    if ! getent group $maintainer_group_name; then
+      addgroup --gid $maintainer_group_id $maintainer_group_name
+      echo "%$maintainer_group_name ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    fi
+
+    if ! id -u $maintainer_user_name 2>/dev/null; then
+      adduser --disabled-password --gecos "" --uid $maintainer_user_id --gid $maintainer_group_id $maintainer_user_name
+    fi
+
+    {{ .Values.maintenance.shell.entrypointAdditionalCommands | indent 4  }}
+
+    # Keep the container running with bash. You can attach to it with
+    # kubectl attach -it deployment/pimcore-maintenance-shell
+    # or start new shell with
+    # kubectl exec -it <pod-name> -c maintenance-shell -- su - maintainer
+    exec su - $maintainer_user_name -c "cd /var/www/pimcore && exec bash --login"

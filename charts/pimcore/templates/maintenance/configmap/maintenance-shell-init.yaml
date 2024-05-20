@@ -30,6 +30,7 @@ data:
     cat <<EOF >> $home/.profile
     export PHP_MAX_EXECUTION_TIME=0
     export PHP_MEMORY_LIMIT=-1
+    cd /var/www/pimcore
     EOF
 
     {{ .Values.maintenance.shell.entrypointAdditionalCommands | indent 4  }}

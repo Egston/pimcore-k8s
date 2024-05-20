@@ -101,7 +101,7 @@ nginx:
   sharedFolders:
     - public
     # bundles assets
-    - vendor/pimcore
+    - vendor
   cors:
     enabled: false
     allowedOrigins: ''

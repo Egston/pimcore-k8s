@@ -34,6 +34,8 @@ data:
 
     {{ .Values.maintenance.shell.entrypointAdditionalCommands | indent 4  }}
 
+    touch /tmp/entrypoint_done
+
     # Keep the container running with bash. You can attach to it with
     # kubectl attach -it deployment/pimcore-maintenance-shell
     # or start new shell with

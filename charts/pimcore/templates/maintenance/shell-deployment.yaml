@@ -39,6 +39,13 @@ spec:
           tty: true
           stdin: true
           command: ['/bin/sh', '/scripts/entrypoint.sh']
+          readinessProbe:
+            exec:
+              command:
+                - cat
+                - /tmp/entrypoint_done
+            initialDelaySeconds: 5
+            periodSeconds: 5
           resources:
             {{- toYaml .Values.maintenance.shell.resources | nindent 12 }}
           envFrom:

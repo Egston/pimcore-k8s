@@ -25,6 +25,13 @@ data:
       adduser --disabled-password --gecos "" --uid $maintainer_user_id --gid $maintainer_group_id $maintainer_user_name
     fi
 
+    home=$(eval echo ~$maintainer_user_name)
+
+    cat <<EOF >> $home/.profile
+    export PHP_MAX_EXECUTION_TIME=0
+    export PHP_MEMORY_LIMIT=-1
+    EOF
+
     {{ .Values.maintenance.shell.entrypointAdditionalCommands | indent 4  }}
 
     # Keep the container running with bash. You can attach to it with

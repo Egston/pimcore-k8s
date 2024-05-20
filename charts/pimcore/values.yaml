@@ -102,6 +102,14 @@ nginx:
     - public
     # bundles assets
     - vendor/pimcore
+  cors:
+    enabled: false
+    allowedOrigins: ''
+    allowedMethods: 'OPTIONS,GET,POST'
+    allowedHeaders: 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization'
+    exposedHeaders: ''
+    allowCredentials: false
+    maxAge: 600
 
 installation:
   resources:

@@ -73,5 +73,3 @@ apps:
       # otherwise you need to edit the config files in the created PV
       pimcore.customConfigFiles.config-yaml.enabled: true
       pimcore.customConfigFiles.bundles-php.enabled: true
-
-      nginx.cors.enabled: false

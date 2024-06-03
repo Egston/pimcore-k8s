@@ -6,13 +6,6 @@ metadata:
     {{- include "pimcore.labels" . | nindent 4 }}
 data:
   default.conf: |
-    {{ if .Values.nginx.cors.enabled -}}
-    map $http_origin $allowed_origin {
-      default "";
-      "~^{{ .Values.nginx.cors.allowedOrigins | replace "," "|" | replace "." "\\." }}$" $http_origin;
-    }
-    {{- end }}
-
     upstream php-pimcore {
       server {{ include "pimcore.fullname" . }}-php:9000;
     }
@@ -28,20 +21,6 @@ data:
 
       client_max_body_size {{ .Values.nginx.clientMaxBodySize }};
 
-      {{ if .Values.nginx.cors.enabled -}}
-      # CORS
-
-      add_header 'Access-Control-Allow-Origin' "$allowed_origin" always;
-      add_header 'Access-Control-Allow-Methods' '{{ .Values.nginx.cors.allowedMethods }}';
-      {{- if .Values.nginx.cors.exposedHeaders }}
-      add_header 'Access-Control-Allow-Headers' '{{ .Values.nginx.cors.allowedHeaders }}';
-      {{- end }}
-      add_header 'Access-Control-Max-Age' '{{ .Values.nginx.cors.maxAge }}';
-      {{- if .Values.nginx.cors.exposedHeaders }}
-      add_header 'Access-Control-Expose-Headers' '{{ .Values.nginx.cors.exposedHeaders }}';
-      {{- end }}
-      add_header 'Access-Control-Allow-Credentials' '{{ .Values.nginx.cors.allowCredentials }}';
-      {{- end }}
 
       # Protected Assets
       #
@@ -177,6 +156,4 @@ data:
         # Remove the internal directive to allow URIs like this
         internal;
       }
-
-
     }

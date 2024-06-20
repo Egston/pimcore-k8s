@@ -66,14 +66,13 @@ php:
     pmProcessIdleTimeout: 10s
   resources:
     requests:
-      cpu: 500m
-      # 2Gi is not enough at least for pimcore/demo
-      memory: 4Gi
-      ephemeral-storage: 1Gi
+      cpu: 4
+      memory: 8Gi
+      ephemeral-storage: 5Gi
     limits:
       cpu: 4
       memory: 8Gi
-      ephemeral-storage: 10Gi
+      ephemeral-storage: 5Gi
 
 nginx:
   imagePullSecrets: []
@@ -90,12 +89,12 @@ nginx:
     "cloud.google.com/neg": '{"ingress": true}'
   resources:
     requests:
-      cpu: 10m
-      memory: 8Mi
+      cpu: 500m
+      memory: 512Mi
       ephemeral-storage: 256Mi
     limits:
-      cpu: 50m
-      memory: 32Mi
+      cpu: 500m
+      memory: 512Mi
       ephemeral-storage: 256Mi
   clientMaxBodySize: 100m
   sharedFolders:
@@ -106,38 +105,47 @@ nginx:
 installation:
   resources:
     requests:
-      cpu: 500m
-      memory: 512Mi
-      ephemeral-storage: 512Mi
+      cpu: 1
+      memory: 1Gi
+      ephemeral-storage: 1Gi
     limits:
-      cpu: 4
-      memory: 2Gi
+      cpu: 1
+      memory: 1Gi
       ephemeral-storage: 1Gi
 
 maintenance:
-  cronjob: {}
+  cronjob:
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+        ephemeral-storage: 3Gi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+        ephemeral-storage: 3Gi
   worker:
     replicas: 1
     resources:
       requests:
         cpu: 500m
-        memory: 512Mi
-        ephemeral-storage: 1Gi
+        memory: 1Gi
+        ephemeral-storage: 3Gi
       limits:
-        cpu: 4
-        memory: 2Gi
-        ephemeral-storage: 10Gi
+        cpu: 500m
+        memory: 1Gi
+        ephemeral-storage: 3Gi
   shell:
     replicas: 0
     resources:
       requests:
-        cpu: 500m
-        memory: 512Mi
-        ephemeral-storage: 1Gi
-      limits:
-        cpu: 4
+        cpu: 1
         memory: 2Gi
-        ephemeral-storage: 10Gi
+        ephemeral-storage: 3Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+        ephemeral-storage: 3Gi
     maintainer:
       userName: maintainer
       userId: 1000
@@ -162,13 +170,12 @@ maintenance:
     resources:
       requests:
         cpu: 500m
-        # 2Gi is not enough at least for pimcore/demo
-        memory: 512Mi
-        ephemeral-storage: 1Gi
+        memory: 1Gi
+        ephemeral-storage: 2Gi
       limits:
-        cpu: 4
-        memory: 2Gi
-        ephemeral-storage: 10Gi
+        cpu: 500m
+        memory: 1Gi
+        ephemeral-storage: 2Gi
 
 pvc:
   data:

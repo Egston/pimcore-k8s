@@ -35,6 +35,8 @@ pimcore:
       localPath: "pimcore-config/skeleton/bundles.php"
       containerPath: config/bundles.php
 
+  customEnvVars: [] # [{ name: "CUSTOM_VAR", value: "custom-value" }, ...]
+
 php:
   imagePullSecrets: []
   image:

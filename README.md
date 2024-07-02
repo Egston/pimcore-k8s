@@ -22,10 +22,43 @@ work, which laid the groundwork for this fork.
 
 ## Basic usage
 
-### 1. Generate .env file with secrets
+### 1. Generate .env file with env. variables and secrets
 
 ```shell
 ./scripts/generate-dotenv.py
+```
+
+Good idea is to keep the `.env` file in a secure location. You can use
+Google Cloud Secrets Manager to store and retrieve the secrets securely.
+
+```shell
+gcloud secrets create your-env-secret-name --data-file=.env
+```
+
+You can add other env. variables used by Helmsman DSF to the `.env` file.
+
+```shell
+  echo 'GKE_KUBE_CONTEXT="..."' >> .env
+```
+
+#### Add custom env. variables to deployments
+
+You can add custom env. variables to the `.env` file and use them in k8s Secret
+included in deployments:
+
+```shell
+  echo 'GOOGLE_TRANSLATE_API_KEY="..."' >> .env
+```
+
+Edit your custom DSF file:
+
+```yaml
+apps:
+  pimcore:
+    set:
+      pimcore.customEnvVars[0].name: "GOOGLE_TRANSLATE_API_KEY"
+      pimcore.customEnvVars[0].value: "$GOOGLE_TRANSLATE_API_KEY"
+      # ...
 ```
 
 ### 2. Optional: Create custom Helmsman hooks

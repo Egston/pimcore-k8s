@@ -80,8 +80,23 @@ nginx:
   imagePullSecrets: []
   image:
     pullPolicy: Always
-    registry: nginx
-    tag: 1.25.4-alpine
+    # Oficial Nginx images, does not support Brotli compression
+    # registry: nginx
+    # tag: 1.27.2-alpine3.20
+    # Custom Nginx image automatically built from the official Nginx image + Brotli support
+    registry: georgjung/nginx-brotli
+    tag: 1.27.2-alpine3.20
+  compression:
+    enabled: true
+    gzip:
+      enabled: true
+      min_length: 1000
+      comp_level: 1
+      types: "text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript"
+    brotli:
+      enabled: true
+      comp_level: 4
+      types: "text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript"
   replicas: 1
   tag: master
   service:
@@ -153,7 +168,7 @@ maintenance:
       userId: 1000
       groupName: developers
       groupId: 1200
-    installPackages: ranger vim
+    installPackages: ranger vim procps
     entrypointAdditionalCommands: |
       apt-get install -y git
       su - maintainer -c "

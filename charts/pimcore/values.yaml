@@ -95,7 +95,7 @@ nginx:
       types: "text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript"
     brotli:
       enabled: true
-      comp_level: 4
+      comp_level: 6
       types: "text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript"
   replicas: 1
   tag: master

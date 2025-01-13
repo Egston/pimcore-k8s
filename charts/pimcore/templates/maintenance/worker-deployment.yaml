@@ -16,10 +16,12 @@ spec:
         app.kubernetes.io/name: {{ include "pimcore.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}-maintenance-worker
       annotations:
+        checksum/php-env-vars: {{ include (print $.Template.BasePath "/maintenance/configmap/maintenance-worker-env.yaml") . | sha256sum }}
         checksum/secret-env-vars: {{ include (print $.Template.BasePath "/secret/dotenv.yaml") . | sha256sum }}
-        checksum/phpfpmconf: {{ include (print $.Template.BasePath "/php/configmap/phpfpmconf.yaml") . | sha256sum }}
-        checksum/phpini: {{ include (print $.Template.BasePath "/php/configmap/phpini.yaml") . | sha256sum }}
-        checksum/phppool: {{ include (print $.Template.BasePath "/php/configmap/phppool.yaml") . | sha256sum }}
+        checksum/php-fpm-conf: {{ include (print $.Template.BasePath "/php/configmap/php-fpm-conf.yaml") . | sha256sum }}
+        checksum/php-fpm-d-zzzz-www-pool-conf: {{ include (print $.Template.BasePath "/php/configmap/php-fpm-d-zzzz-www-pool-conf.yaml") . | sha256sum }}
+        checksum/php-ini: {{ include (print $.Template.BasePath "/php/configmap/php-ini.yaml") . | sha256sum }}
+        checksum/php-conf-d-30-pimcore-ini: {{ include (print $.Template.BasePath "/php/configmap/php-conf-d-30-pimcore-ini.yaml") . | sha256sum }}
     spec:
     {{- with .Values.php.imagePullSecrets }}
       imagePullSecrets:
@@ -47,7 +49,10 @@ spec:
           resources:
             {{- toYaml .Values.maintenance.worker.resources | nindent 12 }}
           envFrom:
+            - configMapRef:
+                name: {{ template "pimcore.fullname" . }}-maintenance-worker-env
             - secretRef:
+                # intentionally second to override values, as it may contain custom user values
                 name: {{ include "pimcore.fullname" . }}-dotenv
           securityContext:
             runAsUser: {{ .Values.php.phpUser.uid }}
@@ -56,12 +61,15 @@ spec:
             - name: php-ini
               mountPath: /usr/local/etc/php/php.ini
               subPath: php.ini
-            - name: php-config
+            - name: php-conf-d-30-pimcore-ini
+              mountPath: /usr/local/etc/php/conf.d/30-pimcore.ini
+              subPath: 30-pimcore.ini
+            - name: php-fpm-conf
               mountPath: /usr/local/etc/php-fpm.conf
-              subPath: php-config.conf
-            - name: php-pool-config
+              subPath: php-fpm.conf
+            - name: php-fpm-d-zzzz-www-pool-conf
               mountPath: /usr/local/etc/php-fpm.d/zzzz-www.conf
-              subPath: php-pool-config.conf
+              subPath: zzzz-www-pool.conf
             - name: pimcore-data
               mountPath: /var/www/pimcore
               subPath: {{ .Values.pvc.data.subPath }}
@@ -72,13 +80,16 @@ spec:
             claimName: {{ template "pimcore.dataClaimName" . }}
         - name: php-ini
           configMap:
-              name: {{ template "pimcore.fullname" . }}-phpfpm-ini
-        - name: php-config
+              name: {{ template "pimcore.fullname" . }}-php-ini
+        - name: php-conf-d-30-pimcore-ini
           configMap:
-              name: {{ template "pimcore.fullname" . }}-phpfpm-conf
-        - name: php-pool-config
+            name: {{ template "pimcore.fullname" . }}-php-conf-d-30-pimcore-ini
+        - name: php-fpm-conf
           configMap:
-              name: {{ template "pimcore.fullname" . }}-phpfpm-pool-conf
+              name: {{ template "pimcore.fullname" . }}-php-fpm-conf
+        - name: php-fpm-d-zzzz-www-pool-conf
+          configMap:
+            name: {{ template "pimcore.fullname" . }}-php-fpm-d-zzzz-www-pool-conf
         {{- include "pimcore.customConfigFiles.volumes" . | nindent 8 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

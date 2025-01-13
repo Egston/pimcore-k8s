@@ -5,9 +5,13 @@ metadata:
   labels:
     {{- include "pimcore.labels" . | nindent 4 }}
   annotations:
-  {{- with .Values.nginx.annotations }}
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- range $key, $value := .Values.nginx.annotations }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+
+    {{- if .Values.nginx.backendConfig.enabled }}
+    cloud.google.com/backend-config: '{"default":"{{ include "pimcore.fullname" . }}-nginx"}'
+    {{- end }}
 spec:
   type: {{ .Values.nginx.service.type }}
   ports:

@@ -75,6 +75,53 @@ php:
       cpu: 4
       memory: 8Gi
       ephemeral-storage: 5Gi
+  ini:
+    # pimcore/pimcore image defaults
+    #
+    # phpMemoryLimit: 512M
+    # phpMaxExecutionTime: 30
+    # phpErrorReporting: E_ALL
+    # phpDisplayErrors: ""
+    # phpDisplayStartupErrors: 1
+    # phpPostMaxSize: 100M
+    # phpUploadMaxFilesize: 100M
+    # opcacheEnable: 1
+    # opcacheEnableCli: 0
+    # opcacheMemoryConsumption: 128
+    # opcacheMaxAcceleratedFiles: 10000
+    # opcacheValidateTimestamps: 1
+    # opcacheConsistencyChecks: 0
+    #
+    pimcore:
+      phpMemoryLimit: 512M  # e.g. create very large GraphQL JSON responses can exceed 256M
+      phpMaxExecutionTime: 300
+      phpErrorReporting: E_ALL
+      phpDisplayErrors: "Off"
+      phpDisplayStartupErrors: 1
+      phpPostMaxSize: 100M
+      phpUploadMaxFilesize: 100M
+      opcacheEnable: 1
+      opcacheEnableCli: 0
+      opcacheMemoryConsumption: 512
+      opcacheMaxAcceleratedFiles: 10000
+      opcacheValidateTimestamps: 1
+      opcacheConsistencyChecks: 0
+    maintenance:
+      # if not set, use pimcore values
+      cronjob:
+        phpMemoryLimit: 512M
+        phpMaxExecutionTime: 0
+      worker:
+        phpMemoryLimit: 512M
+        phpMaxExecutionTime: 0
+      shell:
+        phpMemoryLimit: 0
+        phpMaxExecutionTime: 0
+    installation:
+      # for installation hooks (install, initialize, migrate)
+      # if not set, use pimcore values
+      phpMemoryLimit: 512M
+      phpMaxExecutionTime: 0
 
 nginx:
   imagePullSecrets: []
@@ -104,6 +151,18 @@ nginx:
     port: 80
   annotations:
     "cloud.google.com/neg": '{"ingress": true}'
+  backendConfig:
+    # GKE Ingress backend config
+    enabled: true
+    timeoutSec: 300
+    healthCheck:
+      checkIntervalSec: 30
+      timeoutSec: 30
+      healthyThreshold: 2
+      unhealthyThreshold: 2
+      requestPath: "/admin/login"
+      type: HTTP
+      port: 80
   resources:
     requests:
       cpu: 500m

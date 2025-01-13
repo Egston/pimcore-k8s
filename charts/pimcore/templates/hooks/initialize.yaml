@@ -27,6 +27,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.php.image.registry }}:{{ .Values.php.image.tag }}"
           imagePullPolicy: {{ .Values.php.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ template "pimcore.fullname" . }}-installation-env
           command: ["/bin/sh", "-c"]
           args:
           - |
@@ -66,12 +69,15 @@ spec:
             - name: php-ini
               mountPath: /usr/local/etc/php/php.ini
               subPath: php.ini
-            - name: php-config
+            - name: php-conf-d-30-pimcore-ini
+              mountPath: /usr/local/etc/php/conf.d/30-pimcore.ini
+              subPath: 30-pimcore.ini
+            - name: php-fpm-conf
               mountPath: /usr/local/etc/php-fpm.conf
-              subPath: php-config.conf
-            - name: php-pool-config
+              subPath: php-fpm.conf
+            - name: php-fpm-d-zzzz-www-pool-conf
               mountPath: /usr/local/etc/php-fpm.d/zzzz-www.conf
-              subPath: php-pool-config.conf
+              subPath: zzzz-www-pool.conf
             - name: pimcore-data
               mountPath: /var/www/pimcore
               subPath: {{ .Values.pvc.data.subPath }}
@@ -81,10 +87,13 @@ spec:
           claimName: {{ template "pimcore.dataClaimName" . }}
       - name: php-ini
         configMap:
-          name: {{ template "pimcore.fullname" . }}-phpfpm-ini
-      - name: php-config
+          name: {{ template "pimcore.fullname" . }}-php-ini
+      - name: php-conf-d-30-pimcore-ini
         configMap:
-          name: {{ template "pimcore.fullname" . }}-phpfpm-conf
-      - name: php-pool-config
+          name: {{ template "pimcore.fullname" . }}-php-conf-d-30-pimcore-ini
+      - name: php-fpm-conf
         configMap:
-          name: {{ template "pimcore.fullname" . }}-phpfpm-pool-conf
+          name: {{ template "pimcore.fullname" . }}-php-fpm-conf
+      - name: php-fpm-d-zzzz-www-pool-conf
+        configMap:
+          name: {{ template "pimcore.fullname" . }}-php-fpm-d-zzzz-www-pool-conf

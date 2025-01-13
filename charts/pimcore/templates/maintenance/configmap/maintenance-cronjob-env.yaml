@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pimcore.fullname" . }}-maintenance-cronjob-env
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+type: Opaque
+data:
+    # /usr/local/etc/php/conf.d/20-pimcore.ini from pimcore/pimcore image uses these variables
+
+    {{ with .Values.php.ini.maintenance.cronjob }}
+    PHP_MEMORY_LIMIT: {{ .phpMemoryLimit | default $.Values.php.ini.pimcore.phpMemoryLimit | quote }}
+    PHP_MAX_EXECUTION_TIME: {{ .phpMaxExecutionTime | default $.Values.php.ini.pimcore.phpMaxExecutionTime | quote }}
+    PHP_ERROR_REPORTING: {{ .phpErrorReporting | default $.Values.php.ini.pimcore.phpErrorReporting | quote }}
+    PHP_DISPLAY_ERRORS: {{ .phpDisplayErrors | default $.Values.php.ini.pimcore.phpDisplayErrors | quote }}
+    PHP_DISPLAY_STARTUP_ERRORS: {{ .phpDisplayStartupErrors | default $.Values.php.ini.pimcore.phpDisplayStartupErrors | quote }}
+    PHP_POST_MAX_SIZE: {{ .phpPostMaxSize | default $.Values.php.ini.pimcore.phpPostMaxSize | quote }}
+    PHP_UPLOAD_MAX_FILESIZE: {{ .phpUploadMaxFilesize | default $.Values.php.ini.pimcore.phpUploadMaxFilesize | quote }}
+
+    OPCACHE_ENABLE: {{ .opcacheEnable | default $.Values.php.ini.pimcore.opcacheEnable | quote }}
+    OPCACHE_ENABLE_CLI: {{ .opcacheEnableCli | default $.Values.php.ini.pimcore.opcacheEnableCli | quote }}
+    OPCACHE_MEMORY_CONSUMPTION: {{ .opcacheMemoryConsumption | default $.Values.php.ini.pimcore.opcacheMemoryConsumption | quote }}
+    OPCACHE_MAX_ACCELERATED_FILES: {{ .opcacheMaxAcceleratedFiles | default $.Values.php.ini.pimcore.opcacheMaxAcceleratedFiles | quote }}
+    OPCACHE_VALIDATE_TIMESTAMPS: {{ .opcacheValidateTimestamps | default $.Values.php.ini.pimcore.opcacheValidateTimestamps | quote }}
+    OPCACHE_CONSISTENCY_CHECKS: {{ .opcacheConsistencyChecks | default $.Values.php.ini.pimcore.opcacheConsistencyChecks | quote }}
+    {{- end }}

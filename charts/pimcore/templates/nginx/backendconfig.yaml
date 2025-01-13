@@ -1,0 +1,18 @@
+{{- if .Values.nginx.backendConfig.enabled }}
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: {{ include "pimcore.fullname" . }}-nginx
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+spec:
+  timeoutSec: {{ .Values.nginx.backendConfig.timeoutSec }}
+  healthCheck:
+    checkIntervalSec: {{ .Values.nginx.backendConfig.healthCheck.checkIntervalSec }}
+    timeoutSec: {{ .Values.nginx.backendConfig.healthCheck.timeoutSec }}
+    healthyThreshold: {{ .Values.nginx.backendConfig.healthCheck.healthyThreshold }}
+    unhealthyThreshold: {{ .Values.nginx.backendConfig.healthCheck.unhealthyThreshold }}
+    type: {{ .Values.nginx.backendConfig.healthCheck.type | quote }}
+    requestPath: {{ .Values.nginx.backendConfig.healthCheck.requestPath | quote }}
+    port: {{ .Values.nginx.backendConfig.healthCheck.port }}
+{{- end }}

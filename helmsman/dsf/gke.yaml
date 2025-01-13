@@ -74,3 +74,12 @@ apps:
       # otherwise you need to edit the config files in the created PV
       pimcore.customConfigFiles.config-yaml.enabled: false
       pimcore.customConfigFiles.bundles-php.enabled: false
+
+      # GKE BackendConfig settings
+      pimcore.backendConfig.enable: true
+      pimcore.backendConfig.timeoutSec: 300
+      pimcore.backendConfig.healthCheck.checkIntervalSec: 30
+      pimcore.backendConfig.healthCheck.timeoutSec: 30
+      pimcore.backendConfig.healthCheck.healthyThreshold: 2
+      pimcore.backendConfig.healthCheck.unhealthyThreshold: 2
+      pimcore.backendConfig.healthCheck.requestPath: "/admin/login"

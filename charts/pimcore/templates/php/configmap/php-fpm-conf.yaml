@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "pimcore.fullname" . }}-phpfpm-conf
+  name: {{ include "pimcore.fullname" . }}-php-fpm-conf
   labels:
         {{- include "pimcore.labels" . | nindent 4 }}
 data:
-  php-config.conf: |
+  php-fpm.conf: |
     [global]
     include=etc/php-fpm.d/*.conf

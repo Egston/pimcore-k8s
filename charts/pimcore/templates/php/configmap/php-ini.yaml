@@ -1,7 +1,9 @@
+# This is a common php.ini, it gets overriden by conf.d/30-pimcore.ini that uses env variables,
+# you can set them in Values.php.phpIni.*
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "pimcore.fullname" . }}-phpfpm-ini
+  name: {{ include "pimcore.fullname" . }}-php-ini
   labels:
     {{- include "pimcore.labels" . | nindent 4 }}
 data:

@@ -59,6 +59,7 @@ apps:
       pimcore.appSecret: "$APP_SECRET"
       pimcore.password: "$ADMIN_PASSWORD"
       pimcore.db.password: "$DB_PASSWORD"
+      pimcore.redisPassword: "$REDIS_PASSWORD"
 
       # if you have existing claim, or keep empty to create a new claim
       pvc.data.existingClaim: ""

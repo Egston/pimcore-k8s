@@ -9,6 +9,7 @@ pimcore:
   appSecret: ChangeMe123!
   databaseURL: mysql://pimcore:pimcore@mysql-mariadb.pimcore.svc.cluster.local:3306/app?serverVersion=5.7
   redisServer: redis-master.pimcore.svc.cluster.local
+  redisPassword: ChangeMe123
 
   # composer create-project pimcore/demo
   # composer create-project pimcore/skeleton

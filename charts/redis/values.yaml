@@ -14,7 +14,7 @@ master:
   ## Values suggested by https://pimcore.com/docs/platform/Pimcore/Development_Tools_and_Details/Cache/
   ##
   extraFlags:
-    - "--maxmemory-policy volatile-lru"
+    - "--maxmemory-policy volatile-lru"  # REQUIRED: prevents eviction of keys without an expire set
     - "--maxmemory 768mb"
 
 ## @section Redis&reg; replicas configuration parameters
@@ -27,5 +27,5 @@ replica:
   ## Values suggested by https://pimcore.com/docs/platform/Pimcore/Development_Tools_and_Details/Cache/
   ##
   extraFlags:
-    - "--maxmemory-policy volatile-lru"
+    - "--maxmemory-policy volatile-lru"  # REQUIRED: prevents eviction of keys without an expire set
     - "--maxmemory 768mb"

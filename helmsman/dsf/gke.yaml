@@ -84,3 +84,5 @@ apps:
       pimcore.backendConfig.healthCheck.healthyThreshold: 2
       pimcore.backendConfig.healthCheck.unhealthyThreshold: 2
       pimcore.backendConfig.healthCheck.requestPath: "/admin/login"
+
+      nginx.cors.enabled: false

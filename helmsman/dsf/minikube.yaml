@@ -76,3 +76,5 @@ apps:
 
       # Disable GKE specific settings
       pimcore.backendConfig.enabled: false
+
+      nginx.cors.enabled: false

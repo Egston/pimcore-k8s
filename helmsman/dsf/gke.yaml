@@ -77,10 +77,10 @@ apps:
       pimcore.customConfigFiles.bundles-php.enabled: false
 
       # GKE BackendConfig settings
-      pimcore.backendConfig.enable: true
-      pimcore.backendConfig.timeoutSec: 300
-      pimcore.backendConfig.healthCheck.checkIntervalSec: 30
-      pimcore.backendConfig.healthCheck.timeoutSec: 30
-      pimcore.backendConfig.healthCheck.healthyThreshold: 2
-      pimcore.backendConfig.healthCheck.unhealthyThreshold: 2
-      pimcore.backendConfig.healthCheck.requestPath: "/admin/login"
+      ngingx.backendConfig.enable: true
+      ngingx.backendConfig.timeoutSec: 300
+      ngingx.backendConfig.healthCheck.checkIntervalSec: 30
+      ngingx.backendConfig.healthCheck.timeoutSec: 30
+      ngingx.backendConfig.healthCheck.healthyThreshold: 2
+      ngingx.backendConfig.healthCheck.unhealthyThreshold: 2
+      ngingx.backendConfig.healthCheck.requestPath: "/admin/login"

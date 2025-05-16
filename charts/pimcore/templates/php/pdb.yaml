@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "pimcore.fullname" . }}-php
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "pimcore.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}-php

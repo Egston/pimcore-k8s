@@ -56,7 +56,7 @@ spec:
             cd /var/www/pimcore
               
             COMPOSER_MEMORY_LIMIT=-1 \
-            composer create-project {{ .Values.pimcore.createProject }} . --no-cache
+            composer create-project --no-scripts {{ .Values.pimcore.createProject }} . --no-cache
 
             # Replace all config files that should be replaced with ConfigMaps
             {{- include "pimcore.overrideCustomConfigFiles" . | nindent 12 }}

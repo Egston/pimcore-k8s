@@ -31,7 +31,7 @@ spec:
           imagePullPolicy: {{ .Values.php.image.pullPolicy }}
           envFrom:
             - configMapRef:
-                name: {{ template "pimcore.fullname" . }}-install-env
+                name: {{ template "pimcore.fullname" . }}-installation-env
             - secretRef:
                 name: {{ include "pimcore.fullname" . }}-dotenv
           command: ["/bin/sh", "-c"]
@@ -45,6 +45,9 @@ spec:
 
               cd /var/www/pimcore
 
+              echo "Running console assets:install ..."
+              ./bin/console assets:install --symlink --relative
+
               echo "Running pimcore-install ..."
               ./vendor/bin/pimcore-install \
                 {{- with .Values.pimcore.db }}
@@ -53,8 +56,11 @@ spec:
                 {{- end }}
                 --no-interaction
 
-                date --rfc-2822 > /var/www/pimcore/var/installed
-                echo "Done."
+              echo "Clearing cache ..."
+              ./bin/console cache:clear
+
+              date --rfc-2822 > /var/www/pimcore/var/installed
+              echo "Done."
           securityContext:
             runAsUser: {{ .Values.php.phpUser.uid }}
             runAsGroup: {{ .Values.php.phpUser.gid }}

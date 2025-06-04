@@ -122,3 +122,10 @@ logout
 
 kubectl scale deployment/pimcore-maintenance-shell --replicas=0
 ```
+
+## Setting up Minikube
+
+```shell
+# Set the CPUs and memory limits as desired.
+minikube start --cni=flannel --driver=docker --cpus=no-limit --memory=no-limit
+```

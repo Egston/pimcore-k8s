@@ -154,6 +154,7 @@ nginx:
     "cloud.google.com/neg": '{"ingress": true}'
   backendConfig:
     # GKE Ingress backend config
+    # Turn this off for minikube or other Kubernetes distributions
     enabled: true
     timeoutSec: 300
     healthCheck:

@@ -30,6 +30,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ template "pimcore.fullname" . }}-installation-env
+            - secretRef:
+                name: {{ include "pimcore.fullname" . }}-initialize-dotenv
           command: ["/bin/sh", "-c"]
           args:
           - |
@@ -54,9 +56,38 @@ spec:
             echo "Initializing Pimcore project...";
 
             cd /var/www/pimcore
-              
-            COMPOSER_MEMORY_LIMIT=-1 \
-            composer create-project --no-scripts {{ .Values.pimcore.createProject }} . --no-cache
+
+            INIT_FROM_REPOSITORY="{{ .Values.pvc.data.initFromRepo.enabled }}"
+            INIT_REPOSITORY="{{ .Values.pvc.data.initFromRepo.gitRepositoryUrl }}"
+
+            if [ "$INIT_FROM_REPOSITORY" = "true" ]; then
+              echo "Cloning Pimcore repository from $INIT_REPOSITORY";
+
+
+              # If we have PIMCORE_INIT_REPO_GIT_TOKEN set, use it for authentication
+              if [ -z "${PIMCORE_INIT_REPO_GIT_TOKEN}" ]; then
+                echo "PIMCORE_INIT_REPO_GIT_TOKEN is not set. Using default git user and token.";
+                git clone --depth 1 "$INIT_REPOSITORY" --recurse-submodules --single-branch . || {
+                  echo "Failed to clone repository. Please check the repository URL and access permissions.";
+                  exit 1;
+                }
+              else
+                echo "Using PIMCORE_INIT_REPO_GIT_TOKEN for authentication.";
+                git -c credential.helper='!f() { echo "username=git"; echo "password=${PIMCORE_INIT_REPO_GIT_TOKEN}"; }; f' \
+                clone --depth 1 "$INIT_REPOSITORY" --recurse-submodules --single-branch . || {
+                  echo "Failed to clone repository. Please check the repository URL and access permissions.";
+                  exit 1;
+                }
+              fi
+
+              echo "Running composer install...";
+              COMPOSER_MEMORY_LIMIT=-1 \
+              composer install --no-scripts --no-cache --no-progress --no-interaction
+            else
+              echo "Running composer create-project...";
+              COMPOSER_MEMORY_LIMIT=-1 \
+              composer create-project --no-scripts {{ .Values.pimcore.createProject }} . --no-cache
+            fi
 
             # Replace all config files that should be replaced with ConfigMaps
             {{- include "pimcore.overrideCustomConfigFiles" . | nindent 12 }}

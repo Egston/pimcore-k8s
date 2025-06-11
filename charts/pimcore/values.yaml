@@ -270,6 +270,18 @@ pvc:
     storage: 10Gi
     accessMode: ReadWriteMany
     storageClass: ""
+    initFromRepo:
+      # Instead of running `composer create-project` during the installation, clone an existing repo
+      enabled: false
+      gitRepositoryUrl: ChangeMe123!
+      # If you need to use a different Git user than `git` (default), set it here
+      # PAT access to GitHub, Azure DevOps, GitLab, etc. does not require a specific user, it just
+      # cannot be empty
+      gitUserName: git
+      # if set, it will be used for authentication, injected as PIMCORE_INIT_REPO_GIT_USER env var
+      # in installation job and maintenance shell deployment
+      gitPersonalAccessToken: ""
+
   mysqlBackup:
     ## @param pvc.mysql-backup.existingClaim Name of an existing `PersistentVolumeClaim`
     ## for MySQL backups

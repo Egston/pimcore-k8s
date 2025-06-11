@@ -41,6 +41,7 @@ spec:
 
               if [ -e "/var/www/pimcore/var/installed" ]; then
                 echo "Pimcore is already installed. Skipping installation.";
+                exit 0;
               fi
 
               cd /var/www/pimcore

@@ -56,6 +56,8 @@ spec:
             - secretRef:
                 # intentionally second to override values, as it may contain custom user values
                 name: {{ include "pimcore.fullname" . }}-dotenv
+            - secretRef:
+                name: {{ include "pimcore.fullname" . }}-maintenance-dotenv
           securityContext:
             runAsUser: 0
             runAsGroup: 0

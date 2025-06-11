@@ -123,6 +123,30 @@ logout
 kubectl scale deployment/pimcore-maintenance-shell --replicas=0
 ```
 
+## Initialize data PVC form an existing Git repository instead of creating an empty Pimcore project skeleton
+
+Instead of running `composer create-project` during the installation, you can initialize the data
+PVC from an existing Git repository containing a Pimcore project.
+This is useful if you have a pre-configured Pimcore project that you want to deploy.
+
+Modify your DSF file to use the `pvc.data.initFromRepo`:
+
+```yaml
+apps:
+  pimcore:
+      pvc.data.initFromRepo.enabled: true
+      pvc.data.initFromRepo.gitRepositoryUrl: "https://dev.azure.com/your-org/your-project/_git/your-repo" # or any other Git repository URL
+      pvc.data.initFromRepo.gitUsername: "git" # does not matter when PAT is used, just cannot be empty
+      pvc.data.initFromRepo.gitPersonalAccessToken: "$PIMCORE_INIT_REPO_GIT_TOKEN"
+```
+And put your Personal Access Token into the `.env` file:
+
+```ini
+PIMCORE_INIT_REPO_GIT_TOKEN="..."
+```
+
+If you don't specify `gitPersonalAccessToken`, the repository must be public.
+
 ## Setting up Minikube
 
 ```shell

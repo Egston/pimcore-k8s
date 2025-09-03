@@ -175,6 +175,9 @@ nginx:
       memory: 512Mi
       ephemeral-storage: 256Mi
   clientMaxBodySize: 100m
+  cacheControl:
+    assets: 'public, max-age=300, must-revalidate'
+    thumbnails: 'public, max-age=300, must-revalidate'
   sharedFolders:
     - public
     # bundles assets

@@ -33,6 +33,12 @@ apps:
       primary.persistence.size: "10Gi"
       # if you want to use custom storageClass, e.g. with Retain policy and expandable
       primary.persistence.storageClass: "pimcore-gke-retained"
+      # Frozen legacy image pinned by digest (bitnami moved this to legacy - 2025-10-06)
+      image.registry: "docker.io"
+      image.repository: "bitnamilegacy/mariadb"
+      image.digest: "sha256:b50e0acdf3b201221b8a2b263d63799d062ef6571a07134195897697916d515e"
+      # image.tag: "11.2.3-debian-12-r4"  # (use tag only if you drop digest)
+      image.tag: ""
 
   redis:
     namespace: "pimcore"
@@ -43,6 +49,12 @@ apps:
     priority: -1
     set:
       auth.password: "$REDIS_PASSWORD"
+      # Frozen legacy image pinned by digest (bitnami moved this to legacy - 2025-10-06)
+      image.registry: "docker.io"
+      image.repository: "bitnamilegacy/redis"
+      image.digest: "sha256:c1843bcdb2f413d2aff67adbaf482082673cd40ec602fa9fefad74ec685cb813"
+      # image.tag: "7.2.4-debian-12-r9"    # (use tag only if you drop digest)
+      image.tag: ""
 
   pimcore:
     namespace: "pimcore"

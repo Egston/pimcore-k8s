@@ -40,7 +40,7 @@ spec:
           imagePullPolicy: {{ .Values.php.image.pullPolicy }}
           tty: true
           stdin: true
-          command: ['/bin/sh', '/scripts/entrypoint.sh']
+          command: ['/bin/bash', '/opt/maintenance-scripts/entrypoint.sh']
           readinessProbe:
             exec:
               command:
@@ -63,7 +63,7 @@ spec:
             runAsGroup: 0
           volumeMounts:
             - name: scripts
-              mountPath: /scripts
+              mountPath: /opt/maintenance-scripts
             - name: php-ini
               mountPath: /usr/local/etc/php/php.ini
               subPath: php.ini

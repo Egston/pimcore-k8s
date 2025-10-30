@@ -6,39 +6,116 @@ metadata:
     {{- include "pimcore.labels" . | nindent 4 }}
 data:
   entrypoint.sh: |
-    #!/bin/sh
+    #!/usr/bin/env bash
+    set -euo pipefail
 
+    # Ensure we have the tools we need:
+    # - util-linux: su with --whitelist-environment
+    # - bash/coreutils: for arrays, comm, sort, etc.
+    # - sudo/acl
+    export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y acl sudo {{ .Values.maintenance.shell.installPackages }}
+    apt-get install -y --no-install-recommends \
+        bash coreutils procps util-linux sudo acl {{ .Values.maintenance.shell.installPackages }}
+    # rm -rf /var/lib/apt/lists/*
 
     maintainer_group_name={{ .Values.maintenance.shell.maintainer.groupName }}
     maintainer_group_id={{ .Values.maintenance.shell.maintainer.groupId }}
     maintainer_user_name={{ .Values.maintenance.shell.maintainer.userName }}
     maintainer_user_id={{ .Values.maintenance.shell.maintainer.userId }}
 
-    if ! getent group $maintainer_group_name; then
-      addgroup --gid $maintainer_group_id $maintainer_group_name
+    if ! getent group "$maintainer_group_name" >/dev/null; then
+      addgroup --gid "$maintainer_group_id" "$maintainer_group_name"
       echo "%$maintainer_group_name ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
     fi
 
-    if ! id -u $maintainer_user_name 2>/dev/null; then
-      adduser --disabled-password --gecos "" --uid $maintainer_user_id --gid $maintainer_group_id $maintainer_user_name
+    if ! id -u "$maintainer_user_name" >/dev/null 2>&1; then
+      adduser --disabled-password --gecos "" --uid "$maintainer_user_id" --gid "$maintainer_group_id" "$maintainer_user_name"
     fi
 
-    home=$(eval echo ~$maintainer_user_name)
+    home="$(eval echo ~"$maintainer_user_name")"
 
-    cat <<EOF >> $home/.profile
-    export PHP_MAX_EXECUTION_TIME=0
-    export PHP_MEMORY_LIMIT=-1
-    cd /var/www/pimcore
-    EOF
+    # Minimal login customizations for the maintainer
+    if ! grep -q 'PIMCORE_LOGIN_BOOTSTRAP' "$home/.profile" 2>/dev/null; then
+      printf '%s\n' \
+        '# PIMCORE_LOGIN_BOOTSTRAP' \
+        'export PHP_MAX_EXECUTION_TIME=0' \
+        'export PHP_MEMORY_LIMIT=-1' \
+        'target_dir=${MAINTAINER_CWD:-/var/www/pimcore}' \
+        'if [ -d "$target_dir" ]; then' \
+        '  cd "$target_dir" || true' \
+        'fi' >> "$home/.profile"
+      chown "$maintainer_user_name:$maintainer_group_name" "$home/.profile"
+    fi
+
+    # Install helper scripts into PATH (copied from configmap mount)
+    install -m 0755 /opt/maintenance-scripts/maint-login-merge.sh /usr/local/bin/maint-login-merge
+    install -m 0755 /opt/maintenance-scripts/maint-shell.sh /usr/local/bin/maint-shell
 
     {{ .Values.maintenance.shell.entrypointAdditionalCommands | indent 4  }}
 
     touch /tmp/entrypoint_done
 
-    # Keep the container running with bash. You can attach to it with
+    # Start an interactive login shell for the maintainer with merged env
     # kubectl attach -it deployment/pimcore-maintenance-shell
-    # or start new shell with
-    # kubectl exec -it <pod-name> -c maintenance-shell -- su - maintainer
-    exec su - $maintainer_user_name -c "cd /var/www/pimcore && exec bash --login"
+    exec /usr/local/bin/maint-login-merge "$maintainer_user_name" /var/www/pimcore
+
+  maint-login-merge.sh: |
+    #!/usr/bin/env bash
+    # Usage: maint-login-merge <user> [cd_target]
+    set -euo pipefail
+
+    if [[ $# -lt 1 ]]; then
+      echo "Usage: $0 <user> [cd_target]" >&2
+      exit 2
+    fi
+
+    user="$1"
+    cd_target="${2:-}"
+
+    # Get the *names* of variables in the maintainer's true login env
+    login_names="$(
+      env -i su -l "$user" -s /bin/sh -c 'env | cut -d= -f1 | LC_ALL=C sort -u'
+    )"
+
+    # Names in current (container) env
+    container_names="$(env | cut -d= -f1 | LC_ALL=C sort -u)"
+
+    # Compute container-only env names (login takes precedence on collisions)
+    # Drop noisy session vars; remove the grep if you want literally everything.
+    extras_names_raw="$(
+      comm -13 \
+        <(printf '%s\n' "$login_names") \
+        <(printf '%s\n' "$container_names") \
+      | grep -Ev '^(PWD|OLDPWD|SHLVL|_)$' || true
+    )"
+
+    extras_names_combined="$extras_names_raw"
+    if [[ -n "${cd_target}" ]]; then
+      export MAINTAINER_CWD="$cd_target"
+      extras_names_combined="$(printf '%s\n%s\n' "$extras_names_combined" "MAINTAINER_CWD")"
+    fi
+
+    extras_clean="$(printf '%s\n' "$extras_names_combined" | grep -Ev '^\s*$' || true)"
+
+    if [[ -n "$extras_clean" ]]; then
+      extras_csv="$(printf '%s\n' "$extras_clean" | LC_ALL=C sort -u | paste -sd, -)"
+    else
+      extras_csv=""
+    fi
+
+    su_args=( -l "$user" --shell /bin/bash )
+    if [[ -n "${extras_csv}" ]]; then
+      su_args+=( --whitelist-environment="$extras_csv" )
+    fi
+    exec su "${su_args[@]}"
+
+  # External launcher
+  maint-shell.sh: |
+    #!/usr/bin/env bash
+    # Convenient wrapper to open a new maintainer login shell with merged env
+    # You can run: kubectl exec -it deployment/pimcore-maintenance-shell -- maint-shell
+    set -euo pipefail
+    : "${MAINTAINER_USER_NAME:={{ .Values.maintenance.shell.maintainer.userName }}}"
+    : "${MAINTAINER_CWD:=/var/www/pimcore}"
+    exec /usr/local/bin/maint-login-merge "$MAINTAINER_USER_NAME" "$MAINTAINER_CWD"

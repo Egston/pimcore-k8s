@@ -53,6 +53,7 @@ data:
     install -m 0755 /opt/maintenance-scripts/maint-shell.sh /usr/local/bin/maint-shell
     install -m 0755 /opt/maintenance-scripts/maint-cache-reset.sh /usr/local/bin/maint-cache-reset
     install -m 0755 /opt/maintenance-scripts/maint-graphql-cache-reset.sh /usr/local/bin/maint-graphql-cache-reset
+    install -m 0755 /opt/maintenance-scripts/maint-help /usr/local/bin/maint-help
 
     {{ .Values.maintenance.shell.entrypointAdditionalCommands | indent 4  }}
 
@@ -166,3 +167,39 @@ data:
     }
 
     sudo -E -u "$target_user" "$php_bin" "$console_bin" cache:pool:invalidate-tags datahub
+
+  maint-help: |
+    #!/usr/bin/env bash
+    # Show help for maintenance shell usage
+    set -euo pipefail
+
+    cat <<'EOF'
+    Pimcore Maintenance Shell Help
+
+    This container provides a maintenance shell environment for Pimcore.
+
+    Available commands:
+
+    - maint-shell
+      Opens an interactive login shell as the maintainer user with merged environment variables.
+
+    - maint-cache-reset
+      Resets the Pimcore cache by repeatedly attempting to clear it until successful, then warms the cache.
+
+    - maint-graphql-cache-reset
+      Resets the Datahub GraphQL cache.
+
+    Usage Examples:
+
+    To open a maintenance shell:
+      kubectl exec -it deployment/pimcore-maintenance-shell -- maint-shell
+
+    To reset Pimcore cache:
+      kubectl exec -it deployment/pimcore-maintenance-shell -- maint-cache-reset
+
+    To reset Datahub GraphQL cache:
+      kubectl exec -it deployment/pimcore-maintenance-shell -- maint-graphql-cache-reset
+
+    Note: -it flags are recommended for interactive commands and colored output.
+
+    EOF

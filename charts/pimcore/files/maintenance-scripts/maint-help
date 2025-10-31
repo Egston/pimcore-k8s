@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Show help for maintenance shell usage
+set -euo pipefail
+
+cat <<'EOF'
+Pimcore Maintenance Shell Help
+
+This container provides a maintenance shell environment for Pimcore.
+
+Available commands:
+
+- maint-shell
+  Opens an interactive login shell as the maintainer user with merged environment variables.
+
+- maint-cache-reset
+  Resets the Pimcore cache by repeatedly attempting to clear it until successful, then warms the cache.
+
+- maint-graphql-cache-reset
+  Resets the Datahub GraphQL cache.
+
+- maint-db-import
+  Imports a SQL dump into the Pimcore database; accepts --dump-file or reads from STDIN and handles common compression formats.
+
+Usage Examples:
+
+To open a maintenance shell:
+  kubectl exec -it deployment/pimcore-maintenance-shell -- maint-shell
+
+To reset Pimcore cache:
+  kubectl exec -it deployment/pimcore-maintenance-shell -- maint-cache-reset
+
+To reset Datahub GraphQL cache:
+  kubectl exec -it deployment/pimcore-maintenance-shell -- maint-graphql-cache-reset
+
+To import a database dump (and clear the cache afterward):
+  kubectl exec -i deployment/pimcore-maintenance-shell -- maint-db-import --help
+  kubectl exec -i deployment/pimcore-maintenance-shell -- maint-db-import --dump-file /tmp/dump.sql.gz
+  cat /tmp/dump.sql.xz | kubectl exec -i deployment/pimcore-maintenance-shell -- maint-db-import
+
+Note: -it flags are recommended for interactive commands and colored output.
+
+EOF

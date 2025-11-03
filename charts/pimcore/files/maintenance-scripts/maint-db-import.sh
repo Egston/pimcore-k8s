@@ -17,6 +17,8 @@ show_usage() {
 }
 
 dump_file=""
+force=false
+
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--dump-file | -f)
@@ -28,6 +30,10 @@ while [[ $# -gt 0 ]]; do
 		dump_file="$2"
 		shift 2
 		;;
+	--force)
+        force=true
+        shift
+        ;;
 	-h | --help)
 		show_usage
 		exit 0
@@ -56,6 +62,13 @@ if [[ -z "$dump_file" ]]; then
 		exit 2
 	fi
 	dump_file="-"
+fi
+
+# if APP_ENV is not "dev" and --force is not given, refuse to run
+app_env="${APP_ENV:-prod}"
+if [[ "$app_env" != "dev" && "$force" != "true" ]]; then
+    echo "Error: APP_ENV is '$app_env'. To run this script, set APP_ENV=dev or use --force." >&2
+    exit 5
 fi
 
 cleanup_path=""

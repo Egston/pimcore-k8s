@@ -105,6 +105,7 @@ helmsman -apply -f pimcore-k8s/helmsman/dsf/gke.yaml
 
 # or copy and edit the DSF file and invoke it instead the upstream one
 # (don't forget to update paths in the DSF copy)
+```
 
 ## Maintenance Shell
 
@@ -121,6 +122,33 @@ bin/console ...
 logout
 
 kubectl scale deployment/pimcore-maintenance-shell --replicas=0
+```
+
+### Maintenance Shell useful scripts
+
+The pimcore-maintenance-shell deployment has some usefull scripts prefixed with `maint-` that you
+can invoke directly:
+
+- maint-shell - starts an interactive bash shell
+- maint-cache-reset - resets Pimcore cache
+- maint-graphql-cache-reset - resets Pimcore GraphQL cache
+- maint-db-import - imports a database dump
+- maint-help - shows detailed help about available scripts
+
+Usage example:
+
+```shell
+kubectl exec -it deployment/pimcore-maintenance-shell -- maint-cache-reset
+```
+
+### Maintenance Shell wrapper script
+
+There is a wrapper script `scripts/maintenance-shell.sh` that simplifies the usage of the
+maintenance shell:
+
+```shell
+./scripts/maintenance-shell.sh --help
+
 ```
 
 ## Initialize data PVC form an existing Git repository instead of creating an empty Pimcore project skeleton

@@ -79,6 +79,10 @@ spec:
             - name: pimcore-data
               mountPath: /var/www/pimcore
               subPath: {{ .Values.pvc.data.subPath }}
+            - name: pimcore-mysql-backup
+              mountPath: /backup
+              readOnly: true
+              subPath: {{ .Values.pvc.mysqlBackup.subPath }}
             {{- include "pimcore.customConfigFiles.volumeMounts" . | nindent 12 }}
       volumes:
         - name: scripts
@@ -99,6 +103,9 @@ spec:
         - name: php-fpm-d-zzzz-www-pool-conf
           configMap:
             name: {{ template "pimcore.fullname" . }}-php-fpm-d-zzzz-www-pool-conf
+        - name: pimcore-mysql-backup
+          persistentVolumeClaim:
+            claimName: {{ template "pimcore.mysqlBackupClaimName" . }}
         {{- include "pimcore.customConfigFiles.volumes" . | nindent 8 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

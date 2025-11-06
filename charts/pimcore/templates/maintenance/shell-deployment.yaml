@@ -27,6 +27,10 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+
+    {{ $dataClaim := (include "pimcore.dataClaimName" .) }}
+    {{ $backupClaim := (include "pimcore.mysqlBackupClaimName" .) }}
+
       serviceAccountName: {{ include "pimcore.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
@@ -79,10 +83,21 @@ spec:
             - name: pimcore-data
               mountPath: /var/www/pimcore
               subPath: {{ .Values.pvc.data.subPath }}
+
+            # Backup mount uses either pimcore-data or pimcore-mysql-backup,
+            # depending on whether the claims are the same:
+            {{- if eq $dataClaim $backupClaim }}
+            - name: pimcore-data
+              mountPath: /backup
+              readOnly: true
+              subPath: {{ .Values.pvc.mysqlBackup.subPath }}
+            {{- else }}
             - name: pimcore-mysql-backup
               mountPath: /backup
               readOnly: true
               subPath: {{ .Values.pvc.mysqlBackup.subPath }}
+            {{- end }}
+
             {{- include "pimcore.customConfigFiles.volumeMounts" . | nindent 12 }}
       volumes:
         - name: scripts
@@ -103,9 +118,13 @@ spec:
         - name: php-fpm-d-zzzz-www-pool-conf
           configMap:
             name: {{ template "pimcore.fullname" . }}-php-fpm-d-zzzz-www-pool-conf
+
+        {{- if ne $dataClaim $backupClaim }}
         - name: pimcore-mysql-backup
           persistentVolumeClaim:
-            claimName: {{ template "pimcore.mysqlBackupClaimName" . }}
+            claimName: {{ $backupClaim }}
+        {{- end }}
+
         {{- include "pimcore.customConfigFiles.volumes" . | nindent 8 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

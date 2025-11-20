@@ -243,10 +243,16 @@ maintenance:
   mysqlBackup:
     enabled: false
     imagePullSecrets: []
+    # Debian based MariaDB image with mysqldump
     image:
       pullPolicy: Always
       registry: mariadb
       tag: 10.5
+    compression:
+      # compression tool to use for MySQL backups, Debian package name must match the tool binary
+      # Supported tools: gzip, pigz, xz, pixz, bzip2, pbzip2, lbzip2, zstd, zstdmt, lz4
+      # leave empty to disable compression
+      tool: "pixz"
     replicas: 1
     resources:
       requests:

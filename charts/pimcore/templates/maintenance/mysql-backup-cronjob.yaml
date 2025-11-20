@@ -31,38 +31,76 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
+                  COMPRESSION_TOOL={{ default "" .Values.maintenance.mysqlBackup.compression.tool | quote }}
+                  COMPRESSION_EXT=""
                   DBNAME={{ .Values.pimcore.db.name | quote }}
                   BACKUP_DIR="/backup"
                   TODAY=$(date +%Y-%m-%d)
                   DAY_OF_WEEK=$(date +%u)
-                  TOMORROW=$(date --date='tomorrow' +%Y-%m-%d)
-                  FILENAME="$BACKUP_DIR/$DBNAME-$TODAY.sql"
+                  case "$COMPRESSION_TOOL" in
+                    gzip|pigz) COMPRESSION_EXT=".gz" ;;
+                    xz|pixz) COMPRESSION_EXT=".xz" ;;
+                    bzip2|pbzip2|lbzip2) COMPRESSION_EXT=".bz2" ;;
+                    zstd|zstdmt) COMPRESSION_EXT=".zst" ;;
+                    lz4) COMPRESSION_EXT=".lz4" ;;
+                    "" ) ;;
+                    *) echo "WARNING: Unknown compression tool $COMPRESSION_TOOL; using uncompressed dump"; COMPRESSION_TOOL="";;
+                  esac
+
+                  FILENAME="$BACKUP_DIR/$DBNAME-$TODAY.sql$COMPRESSION_EXT"
+
+                  if [ -n "$COMPRESSION_TOOL" ] && ! command -v "$COMPRESSION_TOOL" >/dev/null 2>&1; then
+                    if ! command -v apt-get >/dev/null 2>&1; then
+                      echo "ERROR: apt-get not available - base image is not Debian/Ubuntu."
+                      exit 1
+                    fi
+
+                    echo "Installing compression tools ($COMPRESSION_TOOL)..."
+                    apt-get update
+                    apt-get install -y --no-install-recommends "$COMPRESSION_TOOL"
+                    apt-get clean
+                  fi
+
+                  if [ -n "$COMPRESSION_TOOL" ] && ! command -v "$COMPRESSION_TOOL" >/dev/null 2>&1; then
+                    echo "ERROR: Compression tool $COMPRESSION_TOOL could not be installed."
+                    exit 1
+                  fi
 
                   # Perform daily backup
                   echo "Creating backup of $DBNAME to $FILENAME"
-                  mysqldump \
-                    -h {{ .Values.pimcore.db.host | quote }} \
-                    -u {{ .Values.pimcore.db.username | quote }} \
-                    -p{{ .Values.pimcore.db.password | quote }} \
-                    {{ .Values.pimcore.db.name | quote }} \
-                     > $FILENAME
+                  if [ -n "$COMPRESSION_TOOL" ]; then
+                    mysqldump \
+                      -h {{ .Values.pimcore.db.host | quote }} \
+                      -u {{ .Values.pimcore.db.username | quote }} \
+                      -p{{ .Values.pimcore.db.password | quote }} \
+                      {{ .Values.pimcore.db.name | quote }} \
+                      | "$COMPRESSION_TOOL" > "$FILENAME" || exit 1
+                  else
+                    mysqldump \
+                      -h {{ .Values.pimcore.db.host | quote }} \
+                      -u {{ .Values.pimcore.db.username | quote }} \
+                      -p{{ .Values.pimcore.db.password | quote }} \
+                      {{ .Values.pimcore.db.name | quote }} \
+                      > "$FILENAME" || exit 1
+                  fi
                   echo "Backup done"
 
                   # Weekly backup on Sunday
+
                   if [ "$DAY_OF_WEEK" -eq 7 ]; then
-                    cp $FILENAME "$BACKUP_DIR/weekly-$DBNAME-$TODAY.sql"
+                    cp "$FILENAME" "$BACKUP_DIR/weekly-$DBNAME-$TODAY.sql$COMPRESSION_EXT"
                   fi
 
                   # Monthly backup on the last day of the month
-                  if [ $(date --date='tomorrow' +%m) != $(date +%m) ]; then
-                    cp $FILENAME "$BACKUP_DIR/monthly-$DBNAME-$TODAY.sql"
+                  if [ "$(date --date='tomorrow' +%m)" != "$(date +%m)" ]; then
+                    cp "$FILENAME" "$BACKUP_DIR/monthly-$DBNAME-$TODAY.sql$COMPRESSION_EXT"
                   fi
 
                   echo "Cleanup old backups"
                   # Cleanup old backups, keep daily backups for 7 days, weekly for 30 days, monthly for 365 days
-                  find $BACKUP_DIR -type f -name "$DBNAME-*.sql" -mtime +7 -exec rm {} \;
-                  find $BACKUP_DIR -type f -name "weekly-$DBNAME-*.sql" -mtime +30 -exec rm {} \;
-                  find $BACKUP_DIR -type f -name "monthly-$DBNAME-*.sql" -mtime +365 -exec rm {} \;
+                  find "$BACKUP_DIR" -type f -name "$DBNAME-*.sql*" -mtime +7 -exec rm "{}" +
+                  find "$BACKUP_DIR" -type f -name "weekly-$DBNAME-*.sql*" -mtime +30 -exec rm "{}" +
+                  find "$BACKUP_DIR" -type f -name "monthly-$DBNAME-*.sql*" -mtime +365 -exec rm "{}" +
                   echo "Cleanup done"
 
               resources:

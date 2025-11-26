@@ -24,5 +24,8 @@ data:
   maint-db-import.sh: |
 {{ tpl (.Files.Get "files/maintenance-scripts/maint-db-import.sh") . | indent 4 }}
 
+  maint-list-db-backups.sh: |
+{{ tpl (.Files.Get "files/maintenance-scripts/maint-list-db-backups.sh") . | indent 4 }}
+
   maint-help: |
 {{ tpl (.Files.Get "files/maintenance-scripts/maint-help") . | indent 4 }}

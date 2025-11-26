@@ -21,6 +21,9 @@ Available commands:
 - maint-db-import
   Imports a SQL dump into the Pimcore database; accepts --dump-file or reads from STDIN and handles common compression formats.
 
+- maint-list-db-backups
+  Lists MySQL backups from /backup, newest first. Use --latest to print only the newest backup path.
+
 Usage Examples:
 
 To open a maintenance shell:
@@ -36,6 +39,9 @@ To import a database dump (and clear the cache afterward):
   kubectl exec -i deployment/pimcore-maintenance-shell -- maint-db-import --help
   kubectl exec -i deployment/pimcore-maintenance-shell -- maint-db-import --dump-file /tmp/dump.sql.gz
   cat /tmp/dump.sql.xz | kubectl exec -i deployment/pimcore-maintenance-shell -- maint-db-import
+
+To inspect database backups:
+  kubectl exec deployment/pimcore-maintenance-shell -- maint-list-db-backups --latest
 
 Note: -it flags are recommended for interactive commands and colored output.
 

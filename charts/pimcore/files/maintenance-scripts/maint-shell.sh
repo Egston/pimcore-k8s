@@ -4,4 +4,5 @@
 set -euo pipefail
 : "${MAINTAINER_USER_NAME:={{ .Values.maintenance.shell.maintainer.userName }}}"
 : "${MAINTAINER_CWD:=/var/www/pimcore}"
+
 exec /usr/local/bin/maint-login-merge "$MAINTAINER_USER_NAME" "$MAINTAINER_CWD"

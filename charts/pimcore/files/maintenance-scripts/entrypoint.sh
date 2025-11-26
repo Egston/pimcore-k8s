@@ -47,6 +47,7 @@ install -m 0755 /opt/maintenance-scripts/maint-shell.sh /usr/local/bin/maint-she
 install -m 0755 /opt/maintenance-scripts/maint-cache-reset.sh /usr/local/bin/maint-cache-reset
 install -m 0755 /opt/maintenance-scripts/maint-graphql-cache-reset.sh /usr/local/bin/maint-graphql-cache-reset
 install -m 0755 /opt/maintenance-scripts/maint-db-import.sh /usr/local/bin/maint-db-import
+install -m 0755 /opt/maintenance-scripts/maint-list-db-backups.sh /usr/local/bin/maint-list-db-backups
 install -m 0755 /opt/maintenance-scripts/maint-help /usr/local/bin/maint-help
 
 {{ with .Values.maintenance.shell.entrypointAdditionalCommands }}

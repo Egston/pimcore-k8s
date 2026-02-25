@@ -33,12 +33,13 @@ if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 
 		  1) Maintenance subcommands (auto-prefixed with "maint-"):
 		     Runs inside the pod. Known subcommands include:
-		         shell                 → maint-shell
-		         cache-reset           → maint-cache-reset
-		         graphql-cache-reset   → maint-graphql-cache-reset
-		         db-import             → maint-db-import
-		         list-db-backups       → maint-list-db-backups
-		         help                  → maint-help
+		         shell                      → maint-shell
+		         cache-reset                → maint-cache-reset
+		         graphql-cache-reset        → maint-graphql-cache-reset
+		         list-db-backups            → maint-list-db-backups
+		         download-latest-db-backup  → maint-download-latest-db-backup
+		         db-import                  → maint-db-import
+		         help                       → maint-help
 
 		  2) Download newest DB backup locally:
 		     maintenance-shell.sh [<kubectl-flags>] download-latest-db-backup [<target-dir>]

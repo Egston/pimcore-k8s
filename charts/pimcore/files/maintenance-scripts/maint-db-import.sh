@@ -6,7 +6,7 @@ show_usage() {
 	printf '%s\n' \
 		"Usage: maint-db-import [--dump-file <path>|-f <path>] [--help]" \
 		"" \
-		"Import a Pimcore database dump from a file or STDIN. Supported compressions:" \
+		"Import a Pimcore database dump from a file in the container or STDIN. Supported compressions:" \
 		"plain text, gzip (.gz), bzip2 (.bz2), xz (.xz), and zstd (.zst/.zstd)." \
 		"Clears and warms the Pimcore cache after import." \
 		"" \

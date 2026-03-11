@@ -37,7 +37,6 @@ if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 		         cache-reset                → maint-cache-reset
 		         graphql-cache-reset        → maint-graphql-cache-reset
 		         list-db-backups            → maint-list-db-backups
-		         download-latest-db-backup  → maint-download-latest-db-backup
 		         db-import                  → maint-db-import
 		         help                       → maint-help
 

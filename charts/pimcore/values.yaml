@@ -252,7 +252,7 @@ maintenance:
       # compression tool to use for MySQL backups, Debian package name must match the tool binary
       # Supported tools: gzip, pigz, xz, pixz, bzip2, pbzip2, lbzip2, zstd, zstdmt, lz4
       # leave empty to disable compression
-      tool: "pixz"
+      tool: "pigz"
     replicas: 1
     resources:
       requests:

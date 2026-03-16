@@ -33,7 +33,8 @@ if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 
 		  1) Maintenance subcommands (auto-prefixed with "maint-"):
 		     Runs inside the pod. Known subcommands include:
-		         shell                      → maint-shell
+		         shell                      → interactive maint-shell (no args)
+		         shell <cmd> [<args>...]    → run <cmd> directly (non-interactive)
 		         cache-reset                → maint-cache-reset
 		         graphql-cache-reset        → maint-graphql-cache-reset
 		         list-db-backups            → maint-list-db-backups
@@ -73,6 +74,14 @@ else
 	case "$subcommand" in
 	download-latest-db-backup)
 		download_latest_backup=true
+		;;
+	shell)
+		if [ $# -gt 0 ]; then
+			# Non-interactive: run the provided command directly (skip maint-shell wrapper)
+			raw_exec=true
+		else
+			container_command="maint-shell"
+		fi
 		;;
 	*)
 		container_command="maint-$subcommand"
@@ -142,7 +151,6 @@ if ! $raw_exec && [ "${#kubectl_flags[@]}" -eq 0 ]; then
 		;;
 	esac
 fi
-
 if $raw_exec; then
 	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- "$@"
 elif $download_latest_backup; then

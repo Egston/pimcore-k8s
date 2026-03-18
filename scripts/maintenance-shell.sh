@@ -155,6 +155,10 @@ fi
 if $raw_exec; then
 	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- "$@"
 elif $shell_cmd; then
+	# Auto-attach stdin+tty when no explicit kubectl flags given and stdin is a terminal
+	if [ "${#kubectl_flags[@]}" -eq 0 ] && [ -t 0 ]; then
+		kubectl_flags+=(-it)
+	fi
 	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- \
 		bash -c 'cd "${MAINTAINER_CWD:-/var/www/pimcore}" && exec "$@"' -- "$@"
 elif $download_latest_backup; then

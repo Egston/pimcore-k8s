@@ -207,6 +207,7 @@ maintenance:
         ephemeral-storage: 3Gi
   worker:
     replicas: 1
+    extraTransports: [] # additional messenger:consume transport names, e.g. ["yageo_translation"]
     resources:
       requests:
         cpu: 500m

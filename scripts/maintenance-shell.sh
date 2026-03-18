@@ -9,6 +9,7 @@ while [ $# -gt 0 ] && [[ "$1" == -* ]] && [ "$1" != "--" ]; do
 done
 
 raw_exec=false
+shell_cmd=false
 download_latest_backup=false
 subcommand=""
 container_command=""
@@ -77,8 +78,8 @@ else
 		;;
 	shell)
 		if [ $# -gt 0 ]; then
-			# Non-interactive: run the provided command directly (skip maint-shell wrapper)
-			raw_exec=true
+			# Non-interactive: run the provided command with CWD /var/www/pimcore
+			shell_cmd=true
 		else
 			container_command="maint-shell"
 		fi
@@ -133,7 +134,7 @@ kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --
 kubectl rollout status "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy"
 
 # Default flags if none provided (only for maint-* exec)
-if ! $raw_exec && [ "${#kubectl_flags[@]}" -eq 0 ]; then
+if ! $raw_exec && ! $shell_cmd && [ "${#kubectl_flags[@]}" -eq 0 ]; then
 	case "$subcommand" in
 	shell | cache-reset | graphql-cache-reset)
 		kubectl_flags+=(-it)
@@ -153,6 +154,9 @@ if ! $raw_exec && [ "${#kubectl_flags[@]}" -eq 0 ]; then
 fi
 if $raw_exec; then
 	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- "$@"
+elif $shell_cmd; then
+	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- \
+		bash -c 'cd "${MAINTAINER_CWD:-/var/www/pimcore}" && exec "$@"' -- "$@"
 elif $download_latest_backup; then
 	target_dir="${1:-.}"
 	if [ $# -gt 1 ]; then

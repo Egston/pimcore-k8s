@@ -39,7 +39,7 @@ if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 		  1) Maintenance subcommands (auto-prefixed with "maint-"):
 		     Runs inside the pod. Known subcommands include:
 		         shell                      → interactive maint-shell (no args)
-		         shell <cmd> [<args>...]    → run <cmd> directly (non-interactive)
+		         shell <cmd> [<args>...]    → run <cmd> as maintainer (non-interactive)
 		         cache-reset                → maint-cache-reset
 		         graphql-cache-reset        → maint-graphql-cache-reset
 		         list-db-backups            → maint-list-db-backups
@@ -248,7 +248,7 @@ elif $shell_cmd; then
 		kubectl_flags+=(-it)
 	fi
 	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- \
-		"${env_prefix[@]}" bash -c 'cd "${MAINTAINER_CWD:-/var/www/pimcore}" && exec "$@"' -- "$@"
+		"${env_prefix[@]}" maint-shell "$@"
 elif $download_latest_backup; then
 	target_dir="${1:-.}"
 	if [ $# -gt 1 ]; then

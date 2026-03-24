@@ -56,7 +56,7 @@ Environment variable overrides: `MAINT_SHELL_DEPLOYMENT`, `MAINT_SHELL_INSTANCE`
 - **`charts/pimcore/`** — Main chart containing all application components:
   - `templates/php/` — PHP-FPM deployment
   - `templates/nginx/` — Nginx reverse proxy (includes `backendconfig.yaml` for GKE)
-  - `templates/maintenance/` — Maintenance shell deployment (0 replicas at rest), background worker, Pimcore cronjob, MySQL backup cronjob
+  - `templates/maintenance/` — Maintenance shell deployment (0 replicas at rest), background worker, Pimcore cronjob, MySQL backup cronjob, generic console command cronjobs
   - `templates/hooks/` — Helm Jobs that run on install/upgrade: `install.yaml` (composer create-project / clone), `initialize.yaml`, `migrate.yaml`
   - `templates/secret/` — Secret resources
 - **`charts/mysql/`** — Bitnami MariaDB chart v16.4.0 (pinned by digest for stability)
@@ -67,6 +67,7 @@ Key `values.yaml` knobs:
 - `pimcore.createProject` — `pimcore/skeleton` (default) or `pimcore/demo`; update `pimcore.customConfigFiles` paths if changed
 - `pimcore.customConfigFiles` — mount `config.yaml` / `bundles.php` as ConfigMaps instead of editing the PV directly (toggle `enabled: true` in DSF)
 - `pvc.data.initFromRepo` — instead of running `composer create-project`, clone an existing Git repo; set `gitRepositoryUrl` and optionally `gitPersonalAccessToken`
+- `maintenance.consoleCronjobs` — map of scheduled `bin/console` command CronJobs; each key becomes a CronJob named `<release>-<key>` with `enabled`, `schedule`, and `command` fields (plus optional `resources`, `concurrencyPolicy`, `activeDeadlineSeconds`, etc.)
 - `maintenance.mysqlBackup.compression.tool` — compression binary for DB backups (`pigz`, `gzip`, `xz`, etc.); defaults to `pigz`
 - PHP image `pimcore/pimcore:php8.2-latest`, 4 CPU / 8Gi memory, PHP memory limit 512M, dynamic PM pool (3–8 spare, 100 max children)
 

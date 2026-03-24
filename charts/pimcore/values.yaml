@@ -241,6 +241,24 @@ maintenance:
         git config --global user.name 'Pimcore Maintainer';
         git config --global user.email 'maintainer@example.com';
       "
+  # Generic console command CronJobs — define any number of scheduled bin/console commands.
+  # Each key becomes a CronJob named "<release>-<key>".
+  # Example:
+  #   consoleCronjobs:
+  #     translation-digests:
+  #       enabled: true
+  #       schedule: "0 8 * * *"           # daily at 8:00 UTC
+  #       command: "yageo:translation:send-email-digests"
+  #       # Optional overrides (all have sensible defaults):
+  #       # resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { ... } }
+  #       # concurrencyPolicy: Forbid
+  #       # restartPolicy: OnFailure
+  #       # ttlSecondsAfterFinished: 60
+  #       # activeDeadlineSeconds: 300
+  #       # startingDeadlineSeconds: 200
+  #       # successfulJobsHistoryLimit: 3
+  #       # failedJobsHistoryLimit: 1
+  consoleCronjobs: {}
   mysqlBackup:
     enabled: false
     imagePullSecrets: []

@@ -9,6 +9,9 @@ metadata:
     {{- include "pimcore.labels" $ | nindent 4 }}
 spec:
   schedule: {{ $job.schedule | quote }}
+  {{- if hasKey $job "suspend" }}
+  suspend: {{ $job.suspend }}
+  {{- end }}
   concurrencyPolicy: {{ $job.concurrencyPolicy | default "Forbid" }}
   {{- with $job.startingDeadlineSeconds }}
   startingDeadlineSeconds: {{ . }}

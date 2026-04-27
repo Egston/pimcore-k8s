@@ -37,6 +37,14 @@ spec:
             - containerPort: 80
           resources:
             {{- toYaml .Values.nginx.resources | nindent 12 }}
+          {{- if .Values.nginx.livenessProbe.enabled }}
+          livenessProbe:
+            {{- omit .Values.nginx.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.nginx.readinessProbe.enabled }}
+          readinessProbe:
+            {{- omit .Values.nginx.readinessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
           volumeMounts:
               - mountPath: /etc/nginx/nginx.conf
                 name: nginx-config

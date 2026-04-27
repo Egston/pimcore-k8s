@@ -76,6 +76,29 @@ php:
       cpu: 4
       memory: 8Gi
       ephemeral-storage: 5Gi
+  ## Probes for the php-fpm container.
+  ## livenessProbe is TCP-only — catches "FPM master crashed", not stuck
+  ## workers (FPM recovers those via request_terminate_timeout).
+  ## readinessProbe is OPT-IN. With single-replica deployments, marking the
+  ## only PHP pod NotReady during a slow cache:clear empties the Service
+  ## endpoints and produces 502s. Enable when running `php.replicas >= 2`,
+  ## where K8s can shift traffic to a healthy sibling.
+  livenessProbe:
+    enabled: true
+    tcpSocket:
+      port: 9000
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 3
+    failureThreshold: 5
+  readinessProbe:
+    enabled: false
+    tcpSocket:
+      port: 9000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
   ini:
     # pimcore/pimcore image defaults
     #
@@ -162,6 +185,11 @@ nginx:
       timeoutSec: 30
       healthyThreshold: 2
       unhealthyThreshold: 2
+      ## Default `/admin/login` routes through index.php and may stall during
+      ## Symfony cache:clear cycles. For predictable LB health, prefer a path
+      ## nginx serves without invoking PHP-FPM (e.g. `/favicon.ico`). Keep
+      ## this in sync with `nginx.readinessProbe.httpGet.path` when both are
+      ## enabled — they should answer the same question at different layers.
       requestPath: "/admin/login"
       type: HTTP
       port: 80
@@ -182,6 +210,29 @@ nginx:
     - public
     # bundles assets
     - vendor
+  ## Probes for the nginx container.
+  ## The readiness path should be served by nginx as a static file — not
+  ## routed through PHP-FPM — so it remains responsive during cache:clear.
+  ## When `nginx.backendConfig.enabled=true`, keep `readinessProbe.httpGet.path`
+  ## in sync with `nginx.backendConfig.healthCheck.requestPath`. The K8s
+  ## period should be tighter than the LB checkIntervalSec so K8s reacts first.
+  livenessProbe:
+    enabled: true
+    tcpSocket:
+      port: 80
+    initialDelaySeconds: 5
+    periodSeconds: 30
+    timeoutSeconds: 3
+    failureThreshold: 3
+  readinessProbe:
+    enabled: true
+    httpGet:
+      path: /favicon.ico
+      port: 80
+    initialDelaySeconds: 2
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 2
 
 installation:
   resources:
@@ -217,6 +268,23 @@ maintenance:
         cpu: 500m
         memory: 1Gi
         ephemeral-storage: 3Gi
+    ## Probe for the messenger consumer.
+    ## Catches the case where the wrapper sh stays alive but the inner
+    ## messenger:consume process has died — Redis Streams back up unnoticed
+    ## without this. `pgrep -x php` matches only the actual PHP worker by
+    ## binary name. Brief gaps during the 5s sleep between iterations are
+    ## tolerated by failureThreshold * periodSeconds.
+    livenessProbe:
+      enabled: true
+      exec:
+        command:
+          - sh
+          - -c
+          - "pgrep -x php >/dev/null"
+      initialDelaySeconds: 60
+      periodSeconds: 60
+      timeoutSeconds: 5
+      failureThreshold: 3
   shell:
     replicas: 0
     resources:

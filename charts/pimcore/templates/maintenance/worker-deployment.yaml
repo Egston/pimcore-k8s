@@ -48,6 +48,10 @@ spec:
               done
           resources:
             {{- toYaml .Values.maintenance.worker.resources | nindent 12 }}
+          {{- if .Values.maintenance.worker.livenessProbe.enabled }}
+          livenessProbe:
+            {{- omit .Values.maintenance.worker.livenessProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ template "pimcore.fullname" . }}-maintenance-worker-env

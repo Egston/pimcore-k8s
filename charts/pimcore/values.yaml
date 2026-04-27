@@ -185,12 +185,13 @@ nginx:
       timeoutSec: 30
       healthyThreshold: 2
       unhealthyThreshold: 2
-      ## Default `/admin/login` routes through index.php and may stall during
-      ## Symfony cache:clear cycles. For predictable LB health, prefer a path
-      ## nginx serves without invoking PHP-FPM (e.g. `/favicon.ico`). Keep
-      ## this in sync with `nginx.readinessProbe.httpGet.path` when both are
-      ## enabled — they should answer the same question at different layers.
-      requestPath: "/admin/login"
+      ## Path is served by nginx as a static file (Pimcore ships favicon.ico
+      ## in public/), so the LB probe stays responsive during Symfony
+      ## cache:clear cycles. Avoid changing to a path that routes through
+      ## index.php (e.g. `/admin/login`) — those block on the kernel rebuild
+      ## during cache:clear and produce probe failures mid-clear.
+      ## Keep in sync with `nginx.readinessProbe.httpGet.path`.
+      requestPath: "/favicon.ico"
       type: HTTP
       port: 80
   resources:

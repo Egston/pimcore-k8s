@@ -239,32 +239,34 @@ nginx:
     - vendor
   ## Probes for the nginx container.
   ##
-  ## startupProbe + livenessProbe both target /livez — a static endpoint
-  ## baked into the nginx serverblock (`return 200 "ok\n"`). No PHP-FPM
-  ## involvement, cache:clear-immune. Once startupProbe passes, liveness
-  ## takes over with tight thresholds and never re-runs.
+  ## livenessProbe targets /livez — a static endpoint baked into the
+  ## nginx serverblock (`return 200 "ok\n"`). No PHP-FPM involvement,
+  ## cache:clear-immune. Don't change this to a path that hits PHP —
+  ## liveness failures kill the pod, and a cache:clear stall would
+  ## restart-loop the deployment.
   ##
-  ## readinessProbe is OPT-IN. The default path is /readyz (kubelet
-  ## convention) — what serves it is the consumer's choice (a Pimcore
-  ## health-check bundle, a custom controller, a static nginx location,
-  ## etc.). Override `httpGet.path` to point elsewhere if your readiness
-  ## endpoint lives at a different URL.
+  ## startupProbe also defaults to /livez — the chart cannot assume an
+  ## application-level health endpoint exists in the consuming Pimcore
+  ## installation. Consumers serving a richer /readyz (e.g. a Pimcore
+  ## health-check bundle, a custom controller, a static return) are
+  ## strongly encouraged to override `startupProbe.httpGet.path` to
+  ## /readyz: doing so makes rolling deploys gate on full application
+  ## readiness (DB connection, cache write/read, GraphQL roundtrip, …)
+  ## before the new pod is declared Started. K8s won't kill the old
+  ## pod until the new one passes startup, so a half-broken new pod
+  ## cannot replace a working old one — that's the only rolling-deploy
+  ## safety mechanism available at replicas: 1, where readiness is no
+  ## help (no peer to drain to). When overriding, bump
+  ## `startupProbe.timeoutSeconds` to accommodate the slower endpoint
+  ## (typically 10-15s; pure-static /livez fits comfortably in 3s).
   ##
-  ## Two operational caveats apply regardless of how /readyz is served:
-  ##
-  ## 1. If the readiness endpoint goes through PHP-FPM, it deliberately
-  ##    stalls during Symfony cache:clear. On this chart's shared-PVC
-  ##    topology (var/cache mounted RWX into all pods), cache:clear hits
-  ##    every replica simultaneously — there is no healthy peer to route
-  ##    to. With nginx.replicas: 1, that becomes a user-visible outage
-  ##    every cache:clear. Enable readiness only with replicas >= 2 and
-  ##    accept that cache:clear is then an operational concern handled
-  ##    outside the probes (e.g. don't run cache:clear against running
-  ##    prod pods; ride deploys instead).
-  ##
-  ## 2. If the readiness endpoint is served statically by nginx (no PHP),
-  ##    the probe degenerates to "is nginx up" — same signal as liveness.
-  ##    In that case, leaving readiness disabled is fine.
+  ## readinessProbe is OPT-IN, intended for replicas >= 2 deployments
+  ## that want individual pods to drop out of the Service when their
+  ## /readyz starts failing. At replicas: 1 leaving it disabled is the
+  ## right call — there is no peer to drain to, so a flap during
+  ## cache:clear would empty the endpoint set entirely and produce
+  ## user-visible 5xx. Default path /readyz; override to point
+  ## elsewhere if your readiness endpoint is at a different URL.
   startupProbe:
     enabled: true
     httpGet:

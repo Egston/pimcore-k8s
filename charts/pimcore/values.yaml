@@ -84,12 +84,15 @@ php:
   ## so the probe is cache:clear-immune AND a real end-to-end signal —
   ## confirms FPM master + dispatch table + worker pool are alive.
   ##
-  ## Requires `cgi-fcgi` (libfcgi-bin) in the image. The verify-probe-deps
-  ## initContainer fails the pod fast at startup if the binary is missing.
+  ## Requires `cgi-fcgi` (libfcgi-bin) in the image. Custom Dockerfile:
+  ##   RUN apt-get update && apt-get install -y --no-install-recommends \
+  ##       libfcgi-bin procps && rm -rf /var/lib/apt/lists/*
+  ## The verify-probe-deps initContainer fails the pod fast at startup if
+  ## either binary is missing.
   ##
   ## startupProbe gives 5min grace so initial cold-cache PHP boot doesn't
-  ## flap liveness. Once it passes, liveness takes over with tight thresholds
-  ## and never re-runs.
+  ## flap liveness. Once startupProbe passes it stops running entirely;
+  ## liveness continues for the pod's lifetime (periodSeconds: 30).
   ##
   ## readinessProbe is OPT-IN. The TCP variant only signals "FPM master
   ## alive" (symbolic — TCP accept happens regardless of worker state). For
@@ -103,7 +106,7 @@ php:
       command:
         - sh
         - -c
-        - 'SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong'
+        - 'set -o pipefail; SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong'
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 30
@@ -113,7 +116,7 @@ php:
       command:
         - sh
         - -c
-        - 'SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong'
+        - 'set -o pipefail; SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong'
     periodSeconds: 30
     timeoutSeconds: 5
     failureThreshold: 3
@@ -267,6 +270,15 @@ nginx:
   ## cache:clear would empty the endpoint set entirely and produce
   ## user-visible 5xx. Default path /readyz; override to point
   ## elsewhere if your readiness endpoint is at a different URL.
+  ##
+  ## Caveat at replicas >= 2: the chart mounts pimcore-data PVC into
+  ## every nginx pod at the same subPath, so var/cache is shared across
+  ## replicas. A cache:clear blasts every replica simultaneously rather
+  ## than only the one currently being deployed — which means readiness
+  ## flapping during cache:clear can still empty the Service endpoint
+  ## set even at replicas: 2+. Cache:clear is then an operational concern
+  ## (avoid running it against live prod pods; ride deploys instead),
+  ## not something readiness can rescue you from.
   startupProbe:
     enabled: true
     httpGet:
@@ -328,22 +340,19 @@ maintenance:
         memory: 1Gi
         ephemeral-storage: 3Gi
     ## Probe for the messenger consumer.
-    ## Catches the case where the wrapper sh stays alive but the inner
-    ## messenger:consume process has died — Redis Streams back up unnoticed
-    ## without this. `pgrep -x php` matches only the actual PHP worker by
-    ## binary name. Brief gaps during the 5s sleep between iterations are
-    ## tolerated by failureThreshold * periodSeconds.
     ##
-    ## Requires `pgrep` (procps) in the image. The verify-probe-deps
-    ## initContainer fails the pod fast at startup if the binary is missing,
-    ## so consumers see a clear error rather than CrashLoopBackOff after 3min.
+    ## Requires `pgrep` (procps) in the image. Custom Dockerfile:
+    ##   RUN apt-get update && apt-get install -y --no-install-recommends \
+    ##       procps && rm -rf /var/lib/apt/lists/*
+    ## The verify-probe-deps initContainer fails the pod fast at startup
+    ## if the binary is missing.
     livenessProbe:
       enabled: true
       exec:
         command:
           - sh
           - -c
-          - "pgrep -x php >/dev/null"
+          - "pgrep -f messenger:consume >/dev/null"
       initialDelaySeconds: 60
       periodSeconds: 60
       timeoutSeconds: 5

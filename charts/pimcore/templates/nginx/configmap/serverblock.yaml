@@ -21,6 +21,18 @@ data:
 
       client_max_body_size {{ .Values.nginx.clientMaxBodySize }};
 
+      # /livez — static health endpoint served by nginx itself, no PHP-FPM
+      # involvement. Stays responsive during Symfony cache:clear cycles.
+      # Used by the GKE LB health check and (optionally) by K8s liveness/startup
+      # probes. Consumers wanting an application-level readiness signal can
+      # serve a separate path (the chart conventionally targets /readyz);
+      # how it is served — bundle, controller, static return — is out of
+      # scope for the chart.
+      location = /livez {
+        access_log off;
+        add_header Content-Type text/plain;
+        return 200 "ok\n";
+      }
 
       # Protected Assets
       #

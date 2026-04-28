@@ -185,13 +185,13 @@ nginx:
       timeoutSec: 30
       healthyThreshold: 2
       unhealthyThreshold: 2
-      ## Path is served by nginx as a static file (Pimcore ships favicon.ico
-      ## in public/), so the LB probe stays responsive during Symfony
+      ## /livez is a dedicated static endpoint baked into the nginx serverblock
+      ## (`return 200 "ok\n"`). It is served by nginx itself with no PHP-FPM
+      ## involvement, so the LB probe stays responsive during Symfony
       ## cache:clear cycles. Avoid changing to a path that routes through
       ## index.php (e.g. `/admin/login`) — those block on the kernel rebuild
       ## during cache:clear and produce probe failures mid-clear.
-      ## Keep in sync with `nginx.readinessProbe.httpGet.path`.
-      requestPath: "/favicon.ico"
+      requestPath: "/livez"
       type: HTTP
       port: 80
   resources:
@@ -212,11 +212,31 @@ nginx:
     # bundles assets
     - vendor
   ## Probes for the nginx container.
-  ## The readiness path should be served by nginx as a static file — not
-  ## routed through PHP-FPM — so it remains responsive during cache:clear.
-  ## When `nginx.backendConfig.enabled=true`, keep `readinessProbe.httpGet.path`
-  ## in sync with `nginx.backendConfig.healthCheck.requestPath`. The K8s
-  ## period should be tighter than the LB checkIntervalSec so K8s reacts first.
+  ##
+  ## livenessProbe is TCP-only on port 80 — catches "nginx process crashed",
+  ## not application state. Stays cache:clear-immune by design.
+  ##
+  ## readinessProbe is OPT-IN. The default path is /readyz (kubelet
+  ## convention) — what serves it is the consumer's choice (a Pimcore
+  ## health-check bundle, a custom controller, a static nginx location,
+  ## etc.). Override `httpGet.path` to point elsewhere if your readiness
+  ## endpoint lives at a different URL.
+  ##
+  ## Two operational caveats apply regardless of how /readyz is served:
+  ##
+  ## 1. If the readiness endpoint goes through PHP-FPM, it deliberately
+  ##    stalls during Symfony cache:clear. On this chart's shared-PVC
+  ##    topology (var/cache mounted RWX into all pods), cache:clear hits
+  ##    every replica simultaneously — there is no healthy peer to route
+  ##    to. With nginx.replicas: 1, that becomes a user-visible outage
+  ##    every cache:clear. Enable readiness only with replicas >= 2 and
+  ##    accept that cache:clear is then an operational concern handled
+  ##    outside the probes (e.g. don't run cache:clear against running
+  ##    prod pods; ride deploys instead).
+  ##
+  ## 2. If the readiness endpoint is served statically by nginx (no PHP),
+  ##    the probe degenerates to "is nginx up" — same signal as liveness.
+  ##    In that case, leaving readiness disabled is fine.
   livenessProbe:
     enabled: true
     tcpSocket:
@@ -226,14 +246,14 @@ nginx:
     timeoutSeconds: 3
     failureThreshold: 3
   readinessProbe:
-    enabled: true
+    enabled: false
     httpGet:
-      path: /favicon.ico
+      path: /readyz
       port: 80
     initialDelaySeconds: 2
     periodSeconds: 10
-    timeoutSeconds: 3
-    failureThreshold: 2
+    timeoutSeconds: 5
+    failureThreshold: 3
 
 installation:
   resources:

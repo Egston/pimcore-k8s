@@ -35,6 +35,9 @@ spec:
         # wait for pimcore to be installed because we need the SubPath in volumeMounts
         # already exist when the container starts
         {{- include "pimcore.initContainers.wait-for-pimcore-installed" . | nindent 12 }}
+        {{- if or .Values.php.startupProbe.enabled .Values.php.livenessProbe.enabled }}
+        {{- include "pimcore.initContainers.verify-probe-deps" (dict "image" .Values.php.image "binaries" (list "cgi-fcgi")) | nindent 12 }}
+        {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:

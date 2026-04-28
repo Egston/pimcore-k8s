@@ -331,6 +331,10 @@ maintenance:
     ## without this. `pgrep -x php` matches only the actual PHP worker by
     ## binary name. Brief gaps during the 5s sleep between iterations are
     ## tolerated by failureThreshold * periodSeconds.
+    ##
+    ## Requires `pgrep` (procps) in the image. The verify-probe-deps
+    ## initContainer fails the pod fast at startup if the binary is missing,
+    ## so consumers see a clear error rather than CrashLoopBackOff after 3min.
     livenessProbe:
       enabled: true
       exec:

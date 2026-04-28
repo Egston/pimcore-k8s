@@ -83,6 +83,43 @@ Create the name of the service account to use
 {{- end -}}
 
 {{/*
+Verify-probe-deps initContainer: fails the pod fast at startup when probe
+binaries are missing from the workload image, instead of letting K8s discover
+the failure via repeated probe failures (which surface as CrashLoopBackOff
+3+ minutes later, with no obvious cause in the events).
+
+Usage:
+
+  initContainers:
+    {{- include "pimcore.initContainers.verify-probe-deps" (dict
+        "image" .Values.php.image
+        "binaries" (list "cgi-fcgi" "pgrep")
+    ) | nindent 8 }}
+
+The initContainer runs in the same image as the workload, so it sees the
+exact PATH / package state the probe will see at runtime.
+*/}}
+{{- define "pimcore.initContainers.verify-probe-deps" -}}
+- name: verify-probe-deps
+  image: "{{ .image.registry }}:{{ .image.tag }}"
+  imagePullPolicy: {{ .image.pullPolicy }}
+  command:
+  - sh
+  - -c
+  - |
+    missing=
+    for bin in {{ range .binaries }}{{ . }} {{ end }}; do
+      command -v "$bin" >/dev/null 2>&1 || missing="$missing $bin"
+    done
+    if [ -n "$missing" ]; then
+      echo "ERROR: probe binaries missing from image:$missing" >&2
+      echo "Install the corresponding package(s) (procps for pgrep, libfcgi-bin for cgi-fcgi)" >&2
+      echo "or override the affected probe in values.yaml." >&2
+      exit 1
+    fi
+{{- end -}}
+
+{{/*
 Create PodTemplateSpec.containers[].volumeMounts from customConfigFiles
 */}}
 {{- define "pimcore.customConfigFiles.volumeMounts" -}}

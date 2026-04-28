@@ -34,6 +34,9 @@ spec:
         # wait for pimcore to be installed because we need the SubPath in volumeMounts
         # already exist when the container starts
         {{- include "pimcore.initContainers.wait-for-pimcore-installed" . | nindent 8 }}
+        {{- if .Values.maintenance.worker.livenessProbe.enabled }}
+        {{- include "pimcore.initContainers.verify-probe-deps" (dict "image" .Values.php.image "binaries" (list "pgrep")) | nindent 8 }}
+        {{- end }}
       containers:
         - name: maintenance-worker
           image: "{{ .Values.php.image.registry }}:{{ .Values.php.image.tag }}"

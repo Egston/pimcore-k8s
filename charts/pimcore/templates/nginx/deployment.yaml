@@ -37,6 +37,10 @@ spec:
             - containerPort: 80
           resources:
             {{- toYaml .Values.nginx.resources | nindent 12 }}
+          {{- if .Values.nginx.startupProbe.enabled }}
+          startupProbe:
+            {{- omit .Values.nginx.startupProbe "enabled" | toYaml | nindent 12 }}
+          {{- end }}
           {{- if .Values.nginx.livenessProbe.enabled }}
           livenessProbe:
             {{- omit .Values.nginx.livenessProbe "enabled" | toYaml | nindent 12 }}

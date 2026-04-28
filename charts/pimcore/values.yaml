@@ -77,20 +77,46 @@ php:
       memory: 8Gi
       ephemeral-storage: 5Gi
   ## Probes for the php-fpm container.
-  ## livenessProbe is TCP-only — catches "FPM master crashed", not stuck
-  ## workers (FPM recovers those via request_terminate_timeout).
-  ## readinessProbe is OPT-IN. With single-replica deployments, marking the
-  ## only PHP pod NotReady during a slow cache:clear empties the Service
-  ## endpoints and produces 502s. Enable when running `php.replicas >= 2`,
-  ## where K8s can shift traffic to a healthy sibling.
+  ##
+  ## startupProbe + livenessProbe both target FPM's built-in `ping.path`
+  ## (configured in php-fpm-d-zzzz-www-pool-conf.yaml as /fpm-ping → "pong").
+  ## FPM intercepts ping requests in the master before any worker dispatch,
+  ## so the probe is cache:clear-immune AND a real end-to-end signal —
+  ## confirms FPM master + dispatch table + worker pool are alive.
+  ##
+  ## Requires `cgi-fcgi` (libfcgi-bin) in the image. The verify-probe-deps
+  ## initContainer fails the pod fast at startup if the binary is missing.
+  ##
+  ## startupProbe gives 5min grace so initial cold-cache PHP boot doesn't
+  ## flap liveness. Once it passes, liveness takes over with tight thresholds
+  ## and never re-runs.
+  ##
+  ## readinessProbe is OPT-IN. The TCP variant only signals "FPM master
+  ## alive" (symbolic — TCP accept happens regardless of worker state). For
+  ## meaningful application-level readiness, prefer the nginx readinessProbe
+  ## targeting /readyz, which exercises the full request path. Enable this
+  ## PHP-side readiness only if you specifically want per-PHP-pod TCP signal
+  ## in addition.
+  startupProbe:
+    enabled: true
+    exec:
+      command:
+        - sh
+        - -c
+        - 'SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong'
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 30
   livenessProbe:
     enabled: true
-    tcpSocket:
-      port: 9000
-    initialDelaySeconds: 30
+    exec:
+      command:
+        - sh
+        - -c
+        - 'SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -q pong'
     periodSeconds: 30
-    timeoutSeconds: 3
-    failureThreshold: 5
+    timeoutSeconds: 5
+    failureThreshold: 3
   readinessProbe:
     enabled: false
     tcpSocket:
@@ -213,8 +239,10 @@ nginx:
     - vendor
   ## Probes for the nginx container.
   ##
-  ## livenessProbe is TCP-only on port 80 — catches "nginx process crashed",
-  ## not application state. Stays cache:clear-immune by design.
+  ## startupProbe + livenessProbe both target /livez — a static endpoint
+  ## baked into the nginx serverblock (`return 200 "ok\n"`). No PHP-FPM
+  ## involvement, cache:clear-immune. Once startupProbe passes, liveness
+  ## takes over with tight thresholds and never re-runs.
   ##
   ## readinessProbe is OPT-IN. The default path is /readyz (kubelet
   ## convention) — what serves it is the consumer's choice (a Pimcore
@@ -237,11 +265,19 @@ nginx:
   ## 2. If the readiness endpoint is served statically by nginx (no PHP),
   ##    the probe degenerates to "is nginx up" — same signal as liveness.
   ##    In that case, leaving readiness disabled is fine.
+  startupProbe:
+    enabled: true
+    httpGet:
+      path: /livez
+      port: 80
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 60
   livenessProbe:
     enabled: true
-    tcpSocket:
+    httpGet:
+      path: /livez
       port: 80
-    initialDelaySeconds: 5
     periodSeconds: 30
     timeoutSeconds: 3
     failureThreshold: 3

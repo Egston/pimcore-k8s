@@ -19,3 +19,9 @@ data:
     pm.max_requests = {{ .pmMaxRequests }}
     pm.process_idle_timeout = {{ .pmProcessIdleTimeout }}
     {{- end }}
+    ; FPM internal ping endpoint, intercepted by the FPM master before any
+    ; PHP worker dispatch — cache:clear-immune. Targeted by the K8s liveness
+    ; and startup probes via cgi-fcgi (see charts/pimcore/values.yaml php
+    ; livenessProbe / startupProbe).
+    ping.path = /fpm-ping
+    ping.response = pong

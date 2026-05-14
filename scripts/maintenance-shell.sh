@@ -69,6 +69,12 @@ if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 		                            dev.azure.com and github.com) and COMPOSER_AUTH
 		                            (github-oauth + http-basic). Inside the session,
 		                            git and composer commands authenticate automatically.
+		  --quiet, -q               Suppress scale/rollout-status banners and pin
+		                            kubectl exec to -c maintenance-shell (prevents the
+		                            "Defaulted container …" stderr line). Intended for
+		                            automated callers. Note: rollout-status progress
+		                            lines are also suppressed, so slow scale-ups are
+		                            silent until the exec begins.
 		  <kubectl-flags>           Any other flags are forwarded to kubectl (e.g. -it,
 		                            -n pimcore).
 		Optional env vars:
@@ -161,23 +167,18 @@ detect_shell_resources() {
 
 detect_shell_resources
 
-# Redirect scale + rollout-status banners to /dev/null under --quiet. Errors
-# from these commands still surface because we don't redirect stderr.
-if $quiet; then
-	_scale_redirect=/dev/null
-else
-	_scale_redirect=/dev/stdout
-fi
+# Runs a command, suppressing stdout when --quiet is active (stderr always surfaces).
+_q() { if $quiet; then "$@" >/dev/null; else "$@"; fi; }
 
 # Scale down early and exit if requested
 if $scale_down_only; then
-	kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=0 >"$_scale_redirect"
+	_q kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=0
 	exit 0
 fi
 
-# Ensure the maintenance shell is running
-kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=1 >"$_scale_redirect"
-kubectl rollout status "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" >"$_scale_redirect"
+# Ensure the maintenance shell is running; --quiet suppresses banners (errors still surface)
+_q kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=1
+_q kubectl rollout status "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy"
 
 # Default flags if none provided (only for maint-* exec)
 if ! $raw_exec && ! $shell_cmd && [ "${#kubectl_flags[@]}" -eq 0 ]; then

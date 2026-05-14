@@ -4,9 +4,11 @@ set -euo pipefail
 # Collect kubectl exec flags and script options from CLI (before first non-flag or "--")
 kubectl_flags=()
 inject_tokens=false
+quiet=false
 while [ $# -gt 0 ] && [[ "$1" == -* ]] && [ "$1" != "--" ]; do
 	case "$1" in
 	--with-tokens) inject_tokens=true ;;
+	--quiet | -q) quiet=true ;;
 	*) kubectl_flags+=("$1") ;;
 	esac
 	shift
@@ -116,6 +118,25 @@ for f in "${kubectl_flags[@]}"; do
 	esac
 done
 
+# --quiet pins the exec target to the maintenance-shell container so kubectl
+# doesn't emit "Defaulted container ..." to stderr each call. The YAGEO chart
+# always names the main container `maintenance-shell` (the other is an init
+# container). Added AFTER kubectl_noninteractive_flags is derived so the -c
+# flag only reaches `kubectl exec` — not `kubectl scale`/`get`/`cp`, which
+# would reject it.
+if $quiet; then
+	_has_c=false
+	for _f in "${kubectl_flags[@]}"; do
+		case "$_f" in
+		-c | -c=* | --container | --container=*) _has_c=true; break ;;
+		esac
+	done
+	if ! $_has_c; then
+		kubectl_flags+=(-c maintenance-shell)
+	fi
+	unset _has_c _f
+fi
+
 detect_shell_resources() {
 	if [ -n "$shell_deploy" ] && [ -n "$shell_instance_label" ]; then
 		return
@@ -140,15 +161,23 @@ detect_shell_resources() {
 
 detect_shell_resources
 
+# Redirect scale + rollout-status banners to /dev/null under --quiet. Errors
+# from these commands still surface because we don't redirect stderr.
+if $quiet; then
+	_scale_redirect=/dev/null
+else
+	_scale_redirect=/dev/stdout
+fi
+
 # Scale down early and exit if requested
 if $scale_down_only; then
-	kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=0
+	kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=0 >"$_scale_redirect"
 	exit 0
 fi
 
 # Ensure the maintenance shell is running
-kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=1
-kubectl rollout status "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy"
+kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=1 >"$_scale_redirect"
+kubectl rollout status "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" >"$_scale_redirect"
 
 # Default flags if none provided (only for maint-* exec)
 if ! $raw_exec && ! $shell_cmd && [ "${#kubectl_flags[@]}" -eq 0 ]; then

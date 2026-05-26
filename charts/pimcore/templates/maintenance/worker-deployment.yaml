@@ -42,13 +42,37 @@ spec:
           image: "{{ .Values.php.image.registry }}:{{ .Values.php.image.tag }}"
           imagePullPolicy: {{ .Values.php.image.pullPolicy }}
           command: ["/bin/sh", "-c"]
+          # PHP can't be PID 1: the kernel drops default-fatal signals to
+          # PID 1 unless a handler is armed at the moment of delivery, which
+          # races Symfony's SignalRegistry init. Shell at PID 1 with a trap
+          # on line one is always armed first; it forwards TERM to the PHP
+          # child (PID 2, in-namespace kills bypass the PID-1 rule) and
+          # waits for the Messenger drain before exiting.
           args:
             - |
               cd /var/www/pimcore
+              trap 'kill -TERM "$child" 2>/dev/null; wait "$child" 2>/dev/null; exit 0' TERM INT
               while true; do
-                php bin/console messenger:consume pimcore_core pimcore_maintenance pimcore_search_backend_message pimcore_scheduled_tasks pimcore_image_optimize pimcore_asset_update pimcore_data_import{{- range .Values.maintenance.worker.extraTransports }} {{ . }}{{- end }} --time-limit=3600
+                php bin/console messenger:consume pimcore_core pimcore_maintenance pimcore_search_backend_message pimcore_scheduled_tasks pimcore_image_optimize pimcore_asset_update pimcore_data_import{{- range .Values.maintenance.worker.extraTransports }} {{ . }}{{- end }} --time-limit=3600 &
+                child=$!
+                wait "$child"
+                child=""
                 sleep 5
               done
+          # K8s' own SIGTERM never reaches PID 1 through the runtime layer
+          # (verified on minikube/cri-dockerd and GKE: SigPnd stays 0, no
+          # Symfony "Received signal" until SIGKILL). preStop fires the trap
+          # from inside the PID namespace where the kernel honours it, and
+          # runs synchronously before the broken outer SIGTERM. The kill-0
+          # loop blocks preStop until PID 1 exits, so in-flight messages
+          # drain within terminationGracePeriodSeconds.
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - 'kill -TERM 1; while kill -0 1 2>/dev/null; do sleep 1; done'
           resources:
             {{- toYaml .Values.maintenance.worker.resources | nindent 12 }}
           {{- if .Values.maintenance.worker.livenessProbe.enabled }}

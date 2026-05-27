@@ -84,6 +84,11 @@ spec:
                 - name: pimcore-data
                   mountPath: /var/www/pimcore
                   subPath: {{ $.Values.pvc.data.subPath }}
+                {{- range $sharedName, $shared := $.Values.pvc.data.sharedSubPaths }}
+                - name: pimcore-data
+                  mountPath: {{ $shared.mountPath }}
+                  subPath: {{ $shared.subPath }}
+                {{- end }}
                 {{- include "pimcore.customConfigFiles.volumeMounts" $ | nindent 16 }}
           volumes:
             - name: pimcore-data

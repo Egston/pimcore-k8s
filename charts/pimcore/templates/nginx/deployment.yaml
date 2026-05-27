@@ -66,6 +66,11 @@ spec:
                 mountPath: /var/www/pimcore/{{ . }}
                 subPath: {{ $.Values.pvc.data.subPath }}/{{ . }}
               {{- end }}
+              {{- range $sharedName, $shared := $.Values.pvc.data.sharedSubPaths }}
+              - name: pimcore-data
+                mountPath: {{ $shared.mountPath }}
+                subPath: {{ $shared.subPath }}
+              {{- end }}
       volumes:
         - name: nginx-config
           configMap:

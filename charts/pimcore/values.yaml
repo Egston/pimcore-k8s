@@ -418,6 +418,9 @@ maintenance:
         git config --global user.name 'Pimcore Maintainer';
         git config --global user.email 'maintainer@example.com';
       "
+    ## @param maintenance.shell.extraVolumeMounts Additional volumeMounts for the maintenance
+    ## shell container, e.g. mounting the PVC root for blue-green slot operations.
+    extraVolumeMounts: []
   # Generic console command CronJobs — define any number of scheduled bin/console commands.
   # Each key becomes a CronJob named "<release>-<key>".
   # Example:
@@ -471,6 +474,21 @@ pvc:
     ## @param pvc.data.subPath SubPath within the volume to mount as /var/www/pimcore
     ##
     subPath: pimcore
+    ## @param pvc.data.sharedSubPaths Slot-overlay companion to subPath: additional mounts for
+    ## whichever code slot is active in a blue-green deployment, keyed by an arbitrary name.
+    ## Each entry requires mountPath and subPath. Empty by default (zero behavior change).
+    ## Example (blue-green):
+    ##   sharedSubPaths:
+    ##     assets:
+    ##       mountPath: /var/www/pimcore/public/var/assets
+    ##       subPath: pimcore-shared/assets
+    ##     versions:
+    ##       mountPath: /var/www/pimcore/var/versions
+    ##       subPath: pimcore-shared/versions
+    ##     recyclebin:
+    ##       mountPath: /var/www/pimcore/var/recyclebin
+    ##       subPath: pimcore-shared/recyclebin
+    sharedSubPaths: {}
     name: data
     storage: 10Gi
     accessMode: ReadWriteMany

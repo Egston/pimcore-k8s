@@ -83,6 +83,11 @@ spec:
             - name: pimcore-data
               mountPath: /var/www/pimcore
               subPath: {{ .Values.pvc.data.subPath }}
+            {{- range $name, $shared := .Values.pvc.data.sharedSubPaths }}
+            - name: pimcore-data
+              mountPath: {{ $shared.mountPath }}
+              subPath: {{ $shared.subPath }}
+            {{- end }}
 
             # Backup mount uses either pimcore-data or pimcore-mysql-backup,
             # depending on whether the claims are the same:
@@ -100,6 +105,9 @@ spec:
 
             {{- include "pimcore.customConfigFiles.volumeMounts" . | nindent 12 }}
             {{- include "pimcore.mountedConfigDirs.volumeMounts" . | nindent 12 }}
+            {{- with .Values.maintenance.shell.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
       volumes:
         - name: scripts
           configMap:

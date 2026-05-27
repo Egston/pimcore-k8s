@@ -76,7 +76,7 @@ Create the name of the service account to use
   command:
   - "sh"
   - "-c"
-  - "until [ -f /var/www/pimcore/var/installed ]; do echo wait-for-pimcore-installed; sleep 5; done;"
+  - "until [ -f /var/www/{{ .Values.pvc.data.subPath }}/var/installed ]; do echo wait-for-pimcore-installed; sleep 5; done;"
   volumeMounts:
   - name: pimcore-data
     mountPath: /var/www

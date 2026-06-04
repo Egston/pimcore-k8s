@@ -36,6 +36,23 @@ pimcore:
       localPath: "pimcore-config/skeleton/bundles.php"
       containerPath: config/bundles.php
 
+  # Renders one ConfigMap per entry from inline `data` (filename -> content)
+  # and mounts it as a directory (NOT subPath). A chart apply that changes the
+  # content rolls the php + worker pods via the checksum/pimcore-configmap
+  # annotation; only an out-of-band `kubectl edit` of the ConfigMap relies on
+  # the directory mount's mtime live-reload (kubelet sync, no restart) for an
+  # app that re-reads the file. Distinct from customConfigFiles (Files.Get +
+  # subPath, which cannot live-reload at all).
+  mountedConfigDirs: {}
+  # Example (set in a downstream DSF, not here):
+  #   mountedConfigDirs:
+  #     <name>:
+  #       enabled: true
+  #       containerPath: var/some/dir          # relative to /var/www/pimcore
+  #       data:
+  #         some-file.json: |
+  #           { ... }
+
   customEnvVars: [] # [{ name: "CUSTOM_VAR", value: "custom-value" }, ...]
 
 php:

@@ -20,3 +20,22 @@ data:
   {{- end }}
 ---
 {{- end }}
+{{- range $name, $config := .Values.pimcore.mountedConfigDirs }}
+  {{- if $config.enabled }}
+    {{- if not $config.containerPath }}
+      {{- fail (printf "mountedConfigDirs entry %s is enabled but has no containerPath; an empty mountPath would shadow the Pimcore PVC at /var/www/pimcore" $name) }}
+    {{- end }}
+    {{- if not $config.data }}
+      {{- fail (printf "mountedConfigDirs entry %s is enabled but has no data" $name) }}
+    {{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullName }}-{{ $name }}
+  labels:
+    {{- include "pimcore.labels" $ | nindent 4 }}
+data:
+  {{- toYaml $config.data | nindent 2 }}
+---
+  {{- end }}
+{{- end }}

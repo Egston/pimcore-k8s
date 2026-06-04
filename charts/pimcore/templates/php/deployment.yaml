@@ -23,6 +23,7 @@ spec:
         checksum/php-fpm-d-zzzz-www-pool-conf: {{ include (print $.Template.BasePath "/php/configmap/php-fpm-d-zzzz-www-pool-conf.yaml") . | sha256sum }}
         checksum/php-ini: {{ include (print $.Template.BasePath "/php/configmap/php-ini.yaml") . | sha256sum }}
         checksum/php-conf-d-30-pimcore-ini: {{ include (print $.Template.BasePath "/php/configmap/php-conf-d-30-pimcore-ini.yaml") . | sha256sum }}
+        checksum/pimcore-configmap: {{ include (print $.Template.BasePath "/pimcore-configmap.yaml") . | sha256sum }}
     spec:
     {{- with .Values.php.imagePullSecrets }}
       imagePullSecrets:
@@ -83,6 +84,7 @@ spec:
               mountPath: /var/www/pimcore
               subPath: {{ .Values.pvc.data.subPath }}
             {{- include "pimcore.customConfigFiles.volumeMounts" . | nindent 12 }}
+            {{- include "pimcore.mountedConfigDirs.volumeMounts" . | nindent 12 }}
       volumes:
         - name: pimcore-data
           persistentVolumeClaim:
@@ -100,6 +102,7 @@ spec:
           configMap:
             name: {{ template "pimcore.fullname" . }}-php-fpm-d-zzzz-www-pool-conf
         {{- include "pimcore.customConfigFiles.volumes" . | nindent 8 }}
+        {{- include "pimcore.mountedConfigDirs.volumes" . | nindent 8 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -112,4 +115,3 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-

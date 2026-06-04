@@ -146,6 +146,32 @@ Create PodTemplateSpec.volumes from customConfigFiles
 {{- end }}
 
 {{/*
+Create PodTemplateSpec.containers[].volumeMounts from mountedConfigDirs.
+*/}}
+{{- define "pimcore.mountedConfigDirs.volumeMounts" -}}
+{{- range $name, $config := .Values.pimcore.mountedConfigDirs }}
+{{- if $config.enabled }}
+- name: {{ $name }}
+  mountPath: /var/www/pimcore/{{ $config.containerPath }}
+  readOnly: true
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create PodTemplateSpec.volumes from mountedConfigDirs.
+*/}}
+{{- define "pimcore.mountedConfigDirs.volumes" -}}
+{{- range $name, $config := .Values.pimcore.mountedConfigDirs }}
+{{- if $config.enabled }}
+- name: {{ $name }}
+  configMap:
+    name: {{ template "pimcore.fullname" $ }}-{{ $name }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Create the name of the PVC to use as Pimcore installation
 */}}
 {{- define "pimcore.dataClaimName" -}}

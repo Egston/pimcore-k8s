@@ -63,22 +63,33 @@ spec:
             if [ "$INIT_FROM_REPOSITORY" = "true" ]; then
               echo "Cloning Pimcore repository from $INIT_REPOSITORY";
 
-
-              # If we have PIMCORE_INIT_REPO_GIT_TOKEN set, use it for authentication
-              if [ -z "${PIMCORE_INIT_REPO_GIT_TOKEN}" ]; then
-                echo "PIMCORE_INIT_REPO_GIT_TOKEN is not set. Using default git user and token.";
-                git clone --depth 1 "$INIT_REPOSITORY" --recurse-submodules --single-branch . || {
-                  echo "Failed to clone repository. Please check the repository URL and access permissions.";
-                  exit 1;
-                }
-              else
+              # (A) Zero-config default: when PIMCORE_INIT_REPO_GIT_TOKEN is set,
+              # derive the scheme://host from $INIT_REPOSITORY at runtime and register
+              # a credential helper scoped to that host via GIT_CONFIG_* env vars
+              # (no HOME write needed).  Both git clone and composer install inherit
+              # the same process env, so VCS-source deps on the init-repo host
+              # authenticate automatically.  The helper is host-scoped and does not
+              # forward the token to other hosts.
+              #
+              # (B) Optional override: pvc.data.composerAuth and pvc.data.gitExtraHeader
+              # inject COMPOSER_AUTH / GIT_CONFIG_* via the initialize-dotenv Secret for
+              # extra hosts not covered by A.  Both default empty — only A runs unless
+              # an operator explicitly sets B values.
+              if [ -n "${PIMCORE_INIT_REPO_GIT_TOKEN}" ]; then
                 echo "Using PIMCORE_INIT_REPO_GIT_TOKEN for authentication.";
-                git -c credential.helper='!f() { echo "username=git"; echo "password=${PIMCORE_INIT_REPO_GIT_TOKEN}"; }; f' \
-                clone --depth 1 "$INIT_REPOSITORY" --recurse-submodules --single-branch . || {
-                  echo "Failed to clone repository. Please check the repository URL and access permissions.";
-                  exit 1;
-                }
+                # scope the credential to the init-repo's own host (no hardcoded VCS host)
+                INIT_REPO_HOST=$(printf '%s' "$INIT_REPOSITORY" | sed -E 's#^([a-zA-Z][a-zA-Z0-9+.-]*://[^/]+).*#\1#')
+                export GIT_CONFIG_COUNT=1
+                export GIT_CONFIG_KEY_0="credential.${INIT_REPO_HOST}.helper"
+                export GIT_CONFIG_VALUE_0="!f() { echo username=git; echo \"password=${PIMCORE_INIT_REPO_GIT_TOKEN}\"; }; f"
+              else
+                echo "PIMCORE_INIT_REPO_GIT_TOKEN is not set. Cloning without authentication.";
               fi
+
+              git clone --depth 1 "$INIT_REPOSITORY" --recurse-submodules --single-branch . || {
+                echo "Failed to clone repository. Please check the repository URL and access permissions.";
+                exit 1;
+              }
 
               echo "Running composer install...";
               COMPOSER_MEMORY_LIMIT=-1 \

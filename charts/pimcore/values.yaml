@@ -467,6 +467,24 @@ pvc:
       # in installation job and maintenance shell deployment
       gitPersonalAccessToken: ""
 
+    # Optional: COMPOSER_AUTH JSON injected into the init job for private
+    # Composer package sources on hosts other than the init-repo host.  The init
+    # job reuses PIMCORE_INIT_REPO_GIT_TOKEN for the init-repo host by default
+    # (zero-config for single-token, single-host deployments); set this only
+    # when additional hosts require a separate composer credential.
+    # Leave empty (default) — init job runs with no COMPOSER_AUTH var.
+    composerAuth: ""
+
+    # Optional: extra git HTTP extra-header credential for a second VCS host
+    # (e.g. GitHub, GitLab).  Injected as GIT_CONFIG_COUNT/KEY/VALUE env vars
+    # so git and composer inherit the helper without a HOME write.  Set only
+    # when the init repo or a VCS-source dep lives on a host that the
+    # PIMCORE_INIT_REPO_GIT_TOKEN credential does not cover.
+    # Leave host + value empty (default) — no extra header is configured.
+    gitExtraHeader:
+      host: ""
+      value: ""
+
   mysqlBackup:
     ## @param pvc.mysql-backup.existingClaim Name of an existing `PersistentVolumeClaim`
     ## for MySQL backups

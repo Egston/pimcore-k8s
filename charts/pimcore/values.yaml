@@ -482,6 +482,18 @@ pvc:
     accessMode: ReadWriteOnce
     storageClass: ""
 
+mysql:
+  pdb:
+    # Set false when the chart is installed into a namespace that already runs
+    # its own MariaDB with its own PDB (e.g. an isolated test namespace).
+    enabled: true
+
+redis:
+  pdb:
+    # Set false when the chart is installed into a namespace that already runs
+    # its own Redis with its own PDB (e.g. an isolated test namespace).
+    enabled: true
+
 serviceAccount:
   create: true
   annotations: { }

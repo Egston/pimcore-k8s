@@ -1,8 +1,9 @@
+{{- if .Values.redis.pdb.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: redis-master-pdb
-  namespace: pimcore
+  namespace: {{ .Release.Namespace }}
 spec:
   minAvailable: 1
   selector:
@@ -10,3 +11,4 @@ spec:
       app.kubernetes.io/name: redis
       app.kubernetes.io/instance: redis
       app.kubernetes.io/component: master
+{{- end }}

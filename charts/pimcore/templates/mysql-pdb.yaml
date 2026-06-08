@@ -1,8 +1,9 @@
+{{- if .Values.mysql.pdb.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: mysql-mariadb-pdb
-  namespace: pimcore
+  namespace: {{ .Release.Namespace }}
 spec:
   minAvailable: 1
   selector:
@@ -10,3 +11,4 @@ spec:
       app.kubernetes.io/name: mariadb
       app.kubernetes.io/instance: mysql
       app.kubernetes.io/component: primary
+{{- end }}

@@ -66,7 +66,9 @@ Key `values.yaml` knobs:
 - `pimcore.appEnv` — defaults to `dev`; change to `prod` for production
 - `pimcore.createProject` — `pimcore/skeleton` (default) or `pimcore/demo`; update `pimcore.customConfigFiles` paths if changed
 - `pimcore.customConfigFiles` — mount `config.yaml` / `bundles.php` as ConfigMaps instead of editing the PV directly (toggle `enabled: true` in DSF)
-- `pvc.data.initFromRepo` — instead of running `composer create-project`, clone an existing Git repo; set `gitRepositoryUrl` and optionally `gitPersonalAccessToken`
+- `pvc.data.initFromRepo` — instead of running `composer create-project`, clone an existing Git repo; set `gitRepositoryUrl` and optionally `gitPersonalAccessToken`. When the token is set, the init job registers a credential helper **scoped to the init-repo's own host** (derived from `gitRepositoryUrl`), so `composer install` resolves private VCS-source deps on that host with no extra config. For deps on *other* private hosts, set `pvc.data.initFromRepo.composerAuth` (a `COMPOSER_AUTH` JSON) and/or `gitExtraHeader` (`{host, value}`) — both default empty.
+- `mysql.pdb.enabled` / `redis.pdb.enabled` — PodDisruptionBudgets for the bitnami DB releases (default `true`). Disable when the chart is deployed into a namespace that runs its own DB releases (e.g. an isolated test namespace) so the chart's hand-written PDBs don't conflict.
+- `PIMCORE_TEST_DB_DSN` (auto-set in the dotenv Secret from `pimcore.db.*`) — Pimcore's functional test suite reads this; the chart points it at the same DB (password url-encoded). Only consulted under `appEnv: test`.
 - `maintenance.consoleCronjobs` — map of scheduled `bin/console` command CronJobs; each key becomes a CronJob named `<release>-<key>` with `enabled`, `schedule`, and `command` fields (plus optional `resources`, `concurrencyPolicy`, `activeDeadlineSeconds`, etc.)
 - `maintenance.mysqlBackup.compression.tool` — compression binary for DB backups (`pigz`, `gzip`, `xz`, etc.); defaults to `pigz`
 - PHP image `pimcore/pimcore:php8.2-latest`, 4 CPU / 8Gi memory, PHP memory limit 512M, dynamic PM pool (3–8 spare, 100 max children)

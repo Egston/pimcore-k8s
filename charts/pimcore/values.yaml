@@ -346,7 +346,7 @@ maintenance:
         ephemeral-storage: 3Gi
   worker:
     replicas: 1
-    extraTransports: [] # additional messenger:consume transport names, e.g. ["yageo_translation"]
+    extraTransports: [] # additional messenger:consume transport names, e.g. ["my_translation"]
     resources:
       requests:
         cpu: 500m
@@ -402,10 +402,10 @@ maintenance:
   # Each key becomes a CronJob named "<release>-<key>".
   # Example:
   #   consoleCronjobs:
-  #     translation-digests:
+  #     email-digests:
   #       enabled: true
   #       schedule: "0 8 * * *"           # daily at 8:00 UTC
-  #       command: "yageo:translation:send-email-digests"
+  #       command: "app:send-email-digests"
   #       # Optional overrides (all have sensible defaults):
   #       # resources: { requests: { cpu: 250m, memory: 512Mi }, limits: { ... } }
   #       # concurrencyPolicy: Forbid

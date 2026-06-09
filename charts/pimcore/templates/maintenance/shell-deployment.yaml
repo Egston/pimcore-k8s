@@ -99,6 +99,7 @@ spec:
             {{- end }}
 
             {{- include "pimcore.customConfigFiles.volumeMounts" . | nindent 12 }}
+            {{- include "pimcore.mountedConfigDirs.volumeMounts" . | nindent 12 }}
       volumes:
         - name: scripts
           configMap:
@@ -126,6 +127,7 @@ spec:
         {{- end }}
 
         {{- include "pimcore.customConfigFiles.volumes" . | nindent 8 }}
+        {{- include "pimcore.mountedConfigDirs.volumes" . | nindent 8 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

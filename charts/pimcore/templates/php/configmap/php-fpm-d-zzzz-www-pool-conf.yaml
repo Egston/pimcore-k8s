@@ -19,6 +19,13 @@ data:
     pm.max_requests = {{ .pmMaxRequests }}
     pm.process_idle_timeout = {{ .pmProcessIdleTimeout }}
     {{- end }}
+    ; Discard the FPM access log. The upstream image's docker.conf sets
+    ; access.log = /proc/self/fd/2 (stderr), so every HTTP request emits a line
+    ; the node logging agent ships to Cloud Logging tagged severity=ERROR.
+    ; nginx already writes access logs to its own file, so the FPM copy is pure
+    ; duplicate noise. This pool conf loads after docker.conf (zzzz- prefix), so
+    ; this directive wins.
+    access.log = /dev/null
     ; FPM internal ping endpoint, intercepted by the FPM master before any
     ; PHP worker dispatch — cache:clear-immune. Targeted by the K8s liveness
     ; and startup probes via cgi-fcgi (see charts/pimcore/values.yaml php

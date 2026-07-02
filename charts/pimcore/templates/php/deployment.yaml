@@ -24,6 +24,12 @@ spec:
         checksum/php-ini: {{ include (print $.Template.BasePath "/php/configmap/php-ini.yaml") . | sha256sum }}
         checksum/php-conf-d-30-pimcore-ini: {{ include (print $.Template.BasePath "/php/configmap/php-conf-d-30-pimcore-ini.yaml") . | sha256sum }}
         checksum/pimcore-configmap: {{ include (print $.Template.BasePath "/pimcore-configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.php.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
     {{- with .Values.php.imagePullSecrets }}
       imagePullSecrets:

@@ -1,3 +1,4 @@
+{{- if .Values.nginx.pdb.enabled }}
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -8,3 +9,4 @@ spec:
     matchLabels:
       app.kubernetes.io/name: {{ include "pimcore.name" . }}
       app.kubernetes.io/instance: {{ .Release.Name }}-nginx
+{{- end }}

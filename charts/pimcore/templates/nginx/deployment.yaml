@@ -19,6 +19,12 @@ spec:
       annotations:
         checksum/serverblock: {{ include (print $.Template.BasePath "/nginx/configmap/serverblock.yaml") . | sha256sum }}
         checksum/nginx: {{ include (print $.Template.BasePath "/nginx/configmap/nginx.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.nginx.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
     {{- with .Values.nginx.imagePullSecrets }}
       imagePullSecrets:

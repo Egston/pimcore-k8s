@@ -66,6 +66,20 @@ php:
     registry: pimcore/pimcore
     tag: php8.2-latest
   replicas: 1
+  ## PodDisruptionBudget with minAvailable: 1. At replicas: 1 it blocks
+  ## autoscaler bin-packing evictions indefinitely, but node-maintenance
+  ## drains force-evict past it after ~1h — so it converts planned
+  ## maintenance into a long stall rather than preventing disruption.
+  ## For single-replica deployments prefer pdb.enabled: false plus
+  ## podAnnotations: {cluster-autoscaler.kubernetes.io/safe-to-evict: "false"},
+  ## which blocks only autoscaler consolidation and lets maintenance
+  ## drains proceed. Keep the PDB at replicas >= 2, where minAvailable: 1
+  ## gives zero-downtime drains.
+  pdb:
+    enabled: true
+  ## Extra pod-template annotations for the PHP pods, merged after the
+  ## global podAnnotations.
+  podAnnotations: { }
   service:
     type: ClusterIP
     port: 9000
@@ -215,6 +229,12 @@ nginx:
       comp_level: 6
       types: "text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript"
   replicas: 1
+  ## Same trade-off as php.pdb — see the comment there.
+  pdb:
+    enabled: true
+  ## Extra pod-template annotations for the nginx pods, merged after the
+  ## global podAnnotations.
+  podAnnotations: { }
   tag: master
   service:
     type: ClusterIP

@@ -7,6 +7,10 @@ metadata:
     {{- include "pimcore.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.nginx.replicas }}
+  {{- with .Values.nginx.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "pimcore.name" . }}
@@ -83,6 +87,10 @@ spec:
             claimName: {{ template "pimcore.dataClaimName" . }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nginx.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     {{- with .Values.affinity }}

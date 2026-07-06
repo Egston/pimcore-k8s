@@ -77,6 +77,15 @@ php:
   ## gives zero-downtime drains.
   pdb:
     enabled: true
+  ## Deployment rollout strategy. Empty ({}) inherits the Kubernetes default
+  ## RollingUpdate (maxSurge/maxUnavailable 25%). At replicas >= 2 prefer
+  ## {rollingUpdate: {maxUnavailable: 0, maxSurge: 1}} so a rollout never
+  ## drops below the current replica count while a new pod comes up.
+  strategy: { }
+  ## Spread replicas across failure domains. Empty ([]) renders nothing.
+  ## At replicas >= 2 set e.g. a topologyKey: kubernetes.io/hostname
+  ## constraint with maxSkew: 1 to avoid co-locating all pods on one node.
+  topologySpreadConstraints: [ ]
   ## Extra pod-template annotations for the PHP pods, merged after the
   ## global podAnnotations.
   podAnnotations: { }
@@ -232,6 +241,10 @@ nginx:
   ## Same trade-off as php.pdb — see the comment there.
   pdb:
     enabled: true
+  ## Rollout strategy — see php.strategy.
+  strategy: { }
+  ## Spread replicas across failure domains — see php.topologySpreadConstraints.
+  topologySpreadConstraints: [ ]
   ## Extra pod-template annotations for the nginx pods, merged after the
   ## global podAnnotations.
   podAnnotations: { }

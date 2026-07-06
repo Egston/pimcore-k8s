@@ -7,6 +7,10 @@ metadata:
     {{- include "pimcore.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.php.replicas }}
+  {{- with .Values.php.strategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "pimcore.name" . }}
@@ -116,6 +120,10 @@ spec:
         {{- include "pimcore.mountedConfigDirs.volumes" . | nindent 8 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.php.topologySpreadConstraints }}
+      topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.affinity }}

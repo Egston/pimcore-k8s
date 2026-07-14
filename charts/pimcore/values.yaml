@@ -380,6 +380,10 @@ maintenance:
   worker:
     replicas: 1
     extraTransports: [] # additional messenger:consume transport names, e.g. ["my_translation"]
+    # Symfony messenger --memory-limit (e.g. "512M"): worker exits gracefully
+    # between messages once RSS exceeds this, so the in-pod while-loop respawns
+    # a fresh process before the cgroup OOM-kills it. Empty = flag omitted.
+    messengerMemoryLimit: ""
     resources:
       requests:
         cpu: 500m

@@ -384,6 +384,18 @@ maintenance:
     # between messages once RSS exceeds this, so the in-pod while-loop respawns
     # a fresh process before the cgroup OOM-kills it. Empty = flag omitted.
     messengerMemoryLimit: ""
+    # Worker-scoped env vars ([{ name, value }, ...]), rendered into the
+    # worker-env ConfigMap (unlike pimcore.customEnvVars, which lands in the
+    # shared dotenv Secret consumed by every pod). Main use: ImageMagick
+    # resource limits (MAGICK_MEMORY_LIMIT / MAGICK_MAP_LIMIT /
+    # MAGICK_DISK_LIMIT) — Imagick pixel caches are native allocations
+    # inside the PHP process, invisible to both PHP memory_limit and the
+    # messenger --memory-limit, so without a MAGICK cap a single oversized
+    # image rasterization rides straight into the cgroup OOM kill. With the
+    # cap, ImageMagick spills to a disk-backed pixel cache above
+    # MAGICK_MEMORY_LIMIT and throws above MAGICK_DISK_LIMIT — a catchable
+    # failure that re-enables messenger retry/dead-letter handling.
+    customEnvVars: []
     resources:
       requests:
         cpu: 500m

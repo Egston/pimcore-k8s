@@ -26,6 +26,11 @@ primary:
     collation-server=utf8mb4_unicode_ci
     slow_query_log=0
     long_query_time=10.0
+    # Handshake grace for bursts of concurrent new connections under
+    # one-thread-per-connection: the 10s default aborts slow greetings
+    # pre-auth (Aborted_connects_preauth), surfacing client-side as
+    # "MySQL server has gone away / reading greeting packet".
+    connect_timeout=30
 
 ## MariaDB Authentication parameters
 ##

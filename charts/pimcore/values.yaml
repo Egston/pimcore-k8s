@@ -55,6 +55,16 @@ pimcore:
 
   customEnvVars: [] # [{ name: "CUSTOM_VAR", value: "custom-value" }, ...]
 
+  # Post-install/post-upgrade Job (templates/hooks/verify-redis-auth.yaml)
+  # that connects to $REDIS_SERVER, authenticates with $REDIS_PASSWORD, and
+  # PINGs — so a wrong (but non-empty) password or an unauthenticatable
+  # cluster fails the apply instead of rendering green. Fails fast on
+  # WRONGPASS/NOAUTH; retries only on connection errors, bounded.
+  redisAuthCheck:
+    enabled: true
+    maxAttempts: 24
+    retryDelaySeconds: 5
+
 php:
   imagePullSecrets: []
   image:

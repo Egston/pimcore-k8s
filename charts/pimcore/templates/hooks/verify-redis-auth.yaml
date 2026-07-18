@@ -1,0 +1,107 @@
+{{- if .Values.pimcore.redisAuthCheck.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "pimcore.fullname" . }}-verify-redis-auth
+  labels:
+    {{- include "pimcore.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-7"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      name: "{{ .Release.Name }}"
+      labels:
+        app.kubernetes.io/name: {{ include "pimcore.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}-verify-redis-auth
+    spec:
+      {{- with .Values.php.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "pimcore.serviceAccountName" . }}
+      restartPolicy: Never
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.php.image.registry }}:{{ .Values.php.image.tag }}"
+          imagePullPolicy: {{ .Values.php.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "pimcore.fullname" . }}-dotenv
+          securityContext:
+            runAsUser: {{ .Values.php.phpUser.uid }}
+            runAsGroup: {{ .Values.php.phpUser.gid }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          command: ["php", "-r"]
+          args:
+            # Asserts end-to-end Redis auth: connect to $REDIS_SERVER (the
+            # generic env var set by the DSF — never a hardcoded HAProxy/
+            # service literal), AUTH with $REDIS_PASSWORD, PING. Reads the
+            # raw dotenv values, not REDIS_DSN (its password is urlquery-
+            # encoded — see templates/secret/dotenv.yaml's REDIS_DSN key).
+            #
+            # WRONGPASS/NOAUTH/invalid-password/no-password-set fails
+            # immediately (retrying a wrong or unexpected auth state never
+            # fixes it); connection errors (HAProxy not yet routing,
+            # redis-ha still starting) retry a bounded number of times.
+            - |
+              $failFastPattern = '/wrongpass|noauth|invalid password|no password is set|client sent auth/i';
+
+              $host = getenv('REDIS_SERVER');
+              $password = getenv('REDIS_PASSWORD');
+              if ($host === false || $host === '') {
+                  fwrite(STDERR, "redis-auth-check: REDIS_SERVER env var is not set\n");
+                  exit(1);
+              }
+              if ($password === false || $password === '') {
+                  fwrite(STDERR, "redis-auth-check: REDIS_PASSWORD env var is not set\n");
+                  exit(1);
+              }
+              $port = 6379;
+              $connectTimeout = 2.0;
+              $maxAttempts = {{ .Values.pimcore.redisAuthCheck.maxAttempts | default 24 }};
+              $retryDelaySeconds = {{ .Values.pimcore.redisAuthCheck.retryDelaySeconds | default 5 }};
+
+              for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
+                  $redis = new Redis();
+                  try {
+                      if (!$redis->connect($host, $port, $connectTimeout)) {
+                          throw new RedisException("connect() returned false");
+                      }
+                      if (!$redis->auth($password)) {
+                          throw new RedisException($redis->getLastError() ?: 'auth() returned false');
+                      }
+                      $pong = $redis->ping();
+                      if ($pong === true || $pong === '+PONG' || $pong === 'PONG') {
+                          fwrite(STDOUT, "redis-auth-check: PONG from {$host}:{$port} (attempt {$attempt}/{$maxAttempts})\n");
+                          exit(0);
+                      }
+                      fwrite(STDERR, "redis-auth-check: unexpected PING reply from {$host}:{$port}: " . var_export($pong, true) . "\n");
+                      exit(1);
+                  } catch (RedisException $e) {
+                      $message = $e->getMessage();
+                      if (preg_match($failFastPattern, $message)) {
+                          fwrite(STDERR, "redis-auth-check: authentication rejected by {$host}:{$port} — {$message}\n");
+                          exit(1);
+                      }
+                      if ($attempt >= $maxAttempts) {
+                          fwrite(STDERR, "redis-auth-check: exhausted {$maxAttempts} attempts against {$host}:{$port} — {$message}\n");
+                          exit(1);
+                      }
+                      fwrite(STDERR, "redis-auth-check: attempt {$attempt}/{$maxAttempts} against {$host}:{$port} failed — {$message}\n");
+                      sleep($retryDelaySeconds);
+                  }
+              }
+
+              fwrite(STDERR, "redis-auth-check: exhausted {$maxAttempts} attempts against {$host}:{$port} without a successful PONG\n");
+              exit(1);
+{{- end }}

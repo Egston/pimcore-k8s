@@ -32,6 +32,12 @@ spec:
     {{ $backupClaim := (include "pimcore.mysqlBackupClaimName" .) }}
 
       serviceAccountName: {{ include "pimcore.serviceAccountName" . }}
+      # The container PID 1 (su -l maintainer) does not reap orphaned children.
+      # This pod is a kubectl-exec target; every exec forks short-lived helpers
+      # that reparent to PID 1 on exit and pile up as zombies until the PID
+      # cgroup is exhausted and fork() fails pod-wide. Sharing the PID namespace
+      # promotes the pause container to PID 1, which reaps them.
+      shareProcessNamespace: true
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:

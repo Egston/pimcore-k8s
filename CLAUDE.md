@@ -37,14 +37,17 @@ helmsman -destroy -f helmsman/dsf/[minikube|gke].yaml
 ./scripts/maintenance-shell.sh db-import dump.sql.gz
 ./scripts/maintenance-shell.sh list-db-backups
 
-# Download latest DB backup locally
-./scripts/maintenance-shell.sh --download-latest-db-backup
+# Download the newest existing DB backup (produced by the daily CronJob) locally
+./scripts/maintenance-shell.sh download-latest-db-backup
+
+# Create a fresh snapshot now (live mysqldump, gzipped in-pod, streamed local)
+./scripts/maintenance-shell.sh download-fresh-db-backup
 
 # Run arbitrary command
 ./scripts/maintenance-shell.sh -- php bin/console pimcore:cache:clear
 
 # Scale down the maintenance shell without running anything
-./scripts/maintenance-shell.sh --scale-down
+./scripts/maintenance-shell.sh down
 ```
 
 Environment variable overrides: `MAINT_SHELL_DEPLOYMENT`, `MAINT_SHELL_INSTANCE`, `MAINT_APP_NAME`.

@@ -17,6 +17,7 @@ done
 raw_exec=false
 shell_cmd=false
 download_latest_backup=false
+download_fresh_backup=false
 subcommand=""
 container_command=""
 scale_down_only=false
@@ -35,6 +36,7 @@ if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 		  maintenance-shell.sh [<flags>] -- <command> [<args>...]
 		  maintenance-shell.sh [<flags>] down
 		  maintenance-shell.sh [<flags>] download-latest-db-backup [<target-dir>]
+		  maintenance-shell.sh [<flags>] download-fresh-db-backup [<target-dir>]
 
 		Modes:
 
@@ -50,13 +52,24 @@ if [ $# -eq 0 ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
 
 		  2) Download newest DB backup locally:
 		     maintenance-shell.sh [<flags>] download-latest-db-backup [<target-dir>]
-		     Defaults to current directory when <target-dir> is omitted.
+		     Copies the newest file already present in the pod's /backup volume
+		     (produced by the daily backup CronJob). Defaults to the current
+		     directory when <target-dir> is omitted.
 
-		  3) Raw commands (no "maint-" prefix):
+		  3) Create a fresh DB snapshot and download it locally:
+		     maintenance-shell.sh [<flags>] download-fresh-db-backup [<target-dir>]
+		     Runs mysqldump --single-transaction inside the pod, gzips it there,
+		     and streams it to <target-dir>/pimcore-fresh-<UTC-timestamp>.sql.gz.
+		     Unlike download-latest-db-backup this reflects the database RIGHT NOW
+		     and does not depend on the CronJob having run. Nothing is written to
+		     the pod's /backup volume (it is mounted read-only in this pod).
+		     Defaults to the current directory when <target-dir> is omitted.
+
+		  4) Raw commands (no "maint-" prefix):
 		     maintenance-shell.sh [<flags>] -- <command> [<args>...]
 		     Everything after "--" is passed as-is to "kubectl exec --".
 
-		  4) Scale down the maintenance shell deployment:
+		  5) Scale down the maintenance shell deployment:
 		     maintenance-shell.sh [<flags>] down
 
 		Flags:
@@ -100,6 +113,9 @@ else
 	case "$subcommand" in
 	download-latest-db-backup)
 		download_latest_backup=true
+		;;
+	download-fresh-db-backup)
+		download_fresh_backup=true
 		;;
 	shell)
 		if [ $# -gt 0 ]; then
@@ -192,7 +208,7 @@ if ! $raw_exec && ! $shell_cmd && [ "${#kubectl_flags[@]}" -eq 0 ]; then
 	help)
 		kubectl_flags+=(-it)
 		;;
-	list-db-backups | download-latest-db-backup)
+	list-db-backups | download-latest-db-backup | download-fresh-db-backup)
 		# no defaults; leave empty
 		;;
 	*)
@@ -321,6 +337,62 @@ elif $download_latest_backup; then
 	dest_path="${target_dir%/}/$(basename "$latest_path")"
 	kubectl cp "${kubectl_noninteractive_flags[@]}" "$shell_pod:$latest_path" "$dest_path"
 	echo "Copied $latest_path from $shell_pod to $dest_path"
+elif $download_fresh_backup; then
+	target_dir="${1:-.}"
+	if [ $# -gt 1 ]; then
+		echo "Error: download-fresh-db-backup accepts at most one argument (target directory)." >&2
+		exit 1
+	fi
+	if ! mkdir -p "$target_dir"; then
+		echo "Error: unable to create target directory '$target_dir'." >&2
+		exit 1
+	fi
+
+	stamp="$(date -u +%Y%m%d-%H%M%S)"
+	dest_path="${target_dir%/}/pimcore-fresh-${stamp}.sql.gz"
+
+	# Stream a live, consistent dump straight from the pod to a local gzip file.
+	# The pod's /backup volume is read-only here, so the dump is never staged in
+	# the pod; DB creds are read from the runtime database.yaml, the same source
+	# maint-db-import uses. -i (never -t) keeps the gzip byte stream intact.
+	if ! kubectl exec -i "${kubectl_flags[@]}" deployment/"$shell_deploy" -- bash -s >"$dest_path" <<-'REMOTE'
+		set -euo pipefail
+		cfg="${DATABASE_CONFIG_PATH:-/var/www/pimcore/config/local/database.yaml}"
+		[ -f "$cfg" ] || { echo "maint: database config '$cfg' not found" >&2; exit 1; }
+		q='.doctrine.dbal.connections.default'
+		host="$(yq -r "$q.host // empty" "$cfg")"
+		port="$(yq -r "$q.port // empty" "$cfg")"
+		user="$(yq -r "$q.user // empty" "$cfg")"
+		pass="$(yq -r "$q.password // empty" "$cfg")"
+		name="$(yq -r "$q.dbname // empty" "$cfg")"
+		if [ -z "$host" ] || [ -z "$user" ] || [ -z "$pass" ] || [ -z "$name" ]; then
+			echo "maint: missing db host/user/password/dbname in $cfg" >&2
+			exit 1
+		fi
+		[ -n "$port" ] && [ "$port" != "null" ] || port=3306
+		MYSQL_PWD="$pass" mysqldump --single-transaction --protocol=tcp \
+			-h "$host" -P "$port" -u "$user" "$name" | gzip -c
+	REMOTE
+	then
+		rm -f "$dest_path"
+		echo "Error: failed to create/stream a fresh DB snapshot from the pod." >&2
+		exit 1
+	fi
+
+	# Integrity: non-empty, and the decompressed stream ends with mysqldump's
+	# completion marker (proves valid gzip + no truncation). tail -n1 consumes
+	# the whole stream, so gzip exits cleanly (no SIGPIPE under pipefail).
+	if [ ! -s "$dest_path" ]; then
+		rm -f "$dest_path"
+		echo "Error: fresh snapshot is empty — deleted." >&2
+		exit 1
+	fi
+	if ! gzip -dc "$dest_path" | tail -n1 | grep -q '^-- Dump completed'; then
+		rm -f "$dest_path"
+		echo "Error: fresh snapshot truncated or corrupt (no completion marker) — deleted." >&2
+		exit 1
+	fi
+	echo "Created fresh DB snapshot: $dest_path ($(du -h "$dest_path" | cut -f1))"
 else
 	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- "${env_prefix[@]}" "$container_command" "$@"
 fi

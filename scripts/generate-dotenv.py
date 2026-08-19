@@ -1,18 +1,9 @@
-#!/bin/env python3
+#!/usr/bin/env python3
 
+import os
 import secrets
 import string
-
-
-def generate_password(length=20):
-    """Generate password that can be used in yaml, shell env. variables and CLI argument without escaping."""
-    alphabet = string.ascii_letters + string.digits + '-_@: ;,./?~!#%^&*()[]{}<>|'
-    while True:
-        password = ''.join(secrets.choice(alphabet) for i in range(length))
-        if (any(c.islower() for c in password) and any(c.isupper() for c in password)
-                and any(c.isdigit() for c in password) and any(c in string.punctuation for c in password)):
-            break
-    return password
+import tempfile
 
 
 def generate_password(length=20):
@@ -33,8 +24,12 @@ def generate_pronounceable_password(length=20):
     Generate a pronounceable password consisting of 4 words from a huge 
     dictionary, each followed by a digit.
     """
-    with open("/usr/share/dict/words") as file:
-        words = file.readlines()
+    try:
+        with open("/usr/share/dict/words") as file:
+            words = file.readlines()
+    except FileNotFoundError:
+        print("No word list at /usr/share/dict/words; using a random password.")
+        return generate_password(length)
     words = [word.strip() for word in words if 3 <= len(word) <= 8]
     password = ''.join(secrets.choice(words).capitalize() + str(secrets.choice(range(10))) for i in range(4))
     return password
@@ -53,16 +48,22 @@ def create_env_file(file_name=".env"):
         "ADMIN_PASSWORD",
     ]
 
-    with open(file_name, "w") as file:
-        import os
-        os.chmod(file_name, 0o600)
+    # A later run only checks that .env exists, so a half-written file would
+    # be taken as finished and never regenerated. Generate every value first,
+    # then move the completed file into place in one step.
+    values = [(key, generate_password()) for key in random_password_keys]
+    values += [(key, generate_pronounceable_password())
+               for key in pronounceable_password_keys]
 
-        for key in random_password_keys:
-            password = generate_password()
-            file.write(f"{key}=\"{password}\"\n")
-        for key in pronounceable_password_keys:
-            password = generate_pronounceable_password()
-            file.write(f"{key}=\"{password}\"\n")
+    fd, temp_name = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(file_name)))
+    try:
+        with os.fdopen(fd, "w") as file:
+            for key, password in values:
+                file.write(f"{key}=\"{password}\"\n")
+        os.replace(temp_name, file_name)
+    except BaseException:
+        os.unlink(temp_name)
+        raise
 
     print(f"File '{file_name}' has been created with secure passwords.")
 

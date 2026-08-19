@@ -33,7 +33,7 @@ run_user_hooks() {
     if [ -d "$USER_HOOK_DIR" ]; then
         (
             # Change to the directory to ensure relative paths in the hooks work
-            cd "$USER_HOOK_DIR"
+            cd "$USER_HOOK_DIR" || exit 1
             echo "Running user hooks in $USER_HOOK_DIR"
             run-parts --report "$USER_HOOK_DIR"
         )

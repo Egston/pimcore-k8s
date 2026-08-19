@@ -141,7 +141,7 @@ for f in "${kubectl_flags[@]}"; do
 done
 
 # --quiet pins the exec target to the maintenance-shell container so kubectl
-# doesn't emit "Defaulted container ..." to stderr each call. The YAGEO chart
+# doesn't emit "Defaulted container ..." to stderr each call. This repo's chart
 # always names the main container `maintenance-shell` (the other is an init
 # container). Added AFTER kubectl_noninteractive_flags is derived so the -c
 # flag only reaches `kubectl exec` — not `kubectl scale`/`get`/`cp`, which

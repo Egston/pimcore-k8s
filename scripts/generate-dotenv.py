@@ -9,8 +9,9 @@ import tempfile
 def generate_password(length=20):
     """Generate a secure password that can be safely used in yaml files."""
     alphabet = string.ascii_letters + string.digits + string.punctuation
-    # Remove characters that are not safe to use in yaml files
-    alphabet = alphabet.replace('"', '').replace("'", '').replace('\\', '').replace('`', '')
+    # Remove characters that are not safe to use in yaml files. `$` goes with
+    # them because helmsman expands `$NAME` inside a double-quoted .env value.
+    alphabet = alphabet.replace('"', '').replace("'", '').replace('\\', '').replace('`', '').replace('$', '')
     while True:
         password = ''.join(secrets.choice(alphabet) for i in range(length))
         if (any(c.islower() for c in password) and any(c.isupper() for c in password)

@@ -8,14 +8,24 @@ LIFECYCLE_EVENT=${LIFECYCLE_EVENT%.sh}
 
 BASE_DIR=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 
-# Apply Kubernetes configurations for the cloud provider
-KUBE_CONFIG_DIR="${BASE_DIR}/cloud-configs/${CLOUD_PROVIDER}"
-if [ -d "$KUBE_CONFIG_DIR" ]; then
-    echo "Applying Kubernetes configurations from $KUBE_CONFIG_DIR"
-    kubectl apply -f "$KUBE_CONFIG_DIR"
-else
-    echo "No Kubernetes configurations to apply for $CLOUD_PROVIDER"
-fi
+# Apply Kubernetes configurations for the cloud provider. The charts need
+# these before they install, and a delete must not put cluster-scoped objects
+# back.
+KUBE_CONFIG_DIR="${BASE_DIR}/../cloud-configs/${CLOUD_PROVIDER}"
+case "$LIFECYCLE_EVENT" in
+    pre-install | pre-upgrade)
+        if [ ! -d "$KUBE_CONFIG_DIR" ]; then
+            echo "No configuration directory at $KUBE_CONFIG_DIR" >&2
+            exit 1
+        fi
+        echo "Applying Kubernetes configurations from $KUBE_CONFIG_DIR"
+        # The manifests sit a level further down, one directory per kind.
+        if ! kubectl apply -R -f "$KUBE_CONFIG_DIR"; then
+            echo "Failed to apply Kubernetes configurations from $KUBE_CONFIG_DIR" >&2
+            exit 1
+        fi
+        ;;
+esac
 
 # Function to run hooks from the custom-hooks directory
 run_user_hooks() {

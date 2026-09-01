@@ -117,6 +117,15 @@ exact PATH / package state the probe will see at runtime.
       echo "or override the affected probe in values.yaml." >&2
       exit 1
     fi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 128Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 128Mi
 {{- end -}}
 
 {{/*

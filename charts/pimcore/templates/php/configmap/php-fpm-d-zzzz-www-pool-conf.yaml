@@ -26,9 +26,13 @@ data:
     ; duplicate noise. This pool conf loads after docker.conf (zzzz- prefix), so
     ; this directive wins.
     access.log = /dev/null
-    ; FPM internal ping endpoint, intercepted by the FPM master before any
-    ; PHP worker dispatch — cache:clear-immune. Targeted by the K8s liveness
-    ; and startup probes via cgi-fcgi (see charts/pimcore/values.yaml php
-    ; livenessProbe / startupProbe).
+    ; FPM internal ping endpoint. A worker answers it before PHP runs, so it is
+    ; immune to cache:clear and to a broken application — but not to a busy pool.
+    ; The master never accepts requests; every child accepts on the shared listen
+    ; socket, so when all pm.max_children are occupied the ping waits in the
+    ; backlog and the probe times out having asserted nothing. Read a ping
+    ; timeout as "no worker was free", never as "FPM is dead". Targeted by the
+    ; K8s liveness and startup probes via cgi-fcgi (see
+    ; charts/pimcore/values.yaml php livenessProbe / startupProbe).
     ping.path = /fpm-ping
     ping.response = pong

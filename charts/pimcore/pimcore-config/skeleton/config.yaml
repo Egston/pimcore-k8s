@@ -99,14 +99,20 @@ framework:
   #        json_manifest_path: '%kernel.project_dir%/public/build/manifest.json'
 
   #### USE CUSTOM CACHE POOL
+  # The explicit timeouts matter more than they look. Symfony defaults to 30s to connect
+  # and no read timeout, so while a node is unreachable but its Redis pod is still
+  # published as a Service endpoint, every connection goes to a black hole and holds a
+  # PHP-FPM worker for the full 30s. The pool drains, and because the liveness probe
+  # needs a free worker to answer, the pod is killed for an outage it could have ridden
+  # out.
   cache:
     pools:
       pimcore.cache.pool:
         public: true
         default_lifetime: 31536000 # 1 year
         adapter: cache.adapter.redis_tag_aware
-        provider: "%env(REDIS_DSN)%" # Redis DNS, see: https://symfony.com/doc/current/components/cache/adapters/redis_adapter.html#configure-the-connection
-
+        # Redis DSN, see: https://symfony.com/doc/current/components/cache/adapters/redis_adapter.html#configure-the-connection
+        provider: "%env(REDIS_DSN)%?timeout=3&read_timeout=5"
 
 #### USE SESSION HANDLER CONFIGURED IN php.ini
 #    session:

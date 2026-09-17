@@ -130,9 +130,12 @@ php:
   ##
   ## startupProbe + livenessProbe both target FPM's built-in `ping.path`
   ## (configured in php-fpm-d-zzzz-www-pool-conf.yaml as /fpm-ping → "pong").
-  ## FPM intercepts ping requests in the master before any worker dispatch,
-  ## so the probe is cache:clear-immune AND a real end-to-end signal —
-  ## confirms FPM master + dispatch table + worker pool are alive.
+  ## A worker answers the ping before PHP runs, so it is immune to
+  ## cache:clear and to a broken application — but not to a busy pool. The
+  ## master never accepts requests; every child accepts on the shared
+  ## listen socket, so when all workers are occupied the ping waits in the
+  ## backlog and the probe times out. Read a probe timeout as "no worker was
+  ## free", never as "FPM is dead".
   ##
   ## Requires `cgi-fcgi` (libfcgi-bin) in the image. Custom Dockerfile:
   ##   RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -150,13 +153,23 @@ php:
   ## targeting /readyz, which exercises the full request path. Enable this
   ## PHP-side readiness only if you specifically want per-PHP-pod TCP signal
   ## in addition.
+  ##
+  ## `env -i` is load-bearing. cgi-fcgi sends its own environment to php-fpm
+  ## as FCGI_PARAMS, and libfcgi splits that at 8184 bytes without regard for
+  ## name-value pairs; php-fpm drops a truncated pair, logging nothing.
+  ## Environmane variables in a pod can easily exceed 8kB, especially with a
+  ## lot of services -  `env -i` clears the inherited env.
+  ##
+  ## This PATH is narrower than what verify-probe-deps initContainer
+  ## (`_helpers.tpl`) checks `cgi-fcgi` against. Passing that check only
+  ## means `cgi-fcgi` exists somewhere in the image — not the path below.
   startupProbe:
     enabled: true
     exec:
       command:
         - sh
         - -c
-        - "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong"
+        - "env -i PATH=/usr/local/bin:/usr/bin:/bin SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong"
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 30
@@ -166,7 +179,7 @@ php:
       command:
         - sh
         - -c
-        - "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong"
+        - "env -i PATH=/usr/local/bin:/usr/bin:/bin SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong"
     periodSeconds: 30
     timeoutSeconds: 5
     failureThreshold: 3

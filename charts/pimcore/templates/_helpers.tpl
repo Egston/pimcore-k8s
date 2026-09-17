@@ -96,8 +96,8 @@ Usage:
         "binaries" (list "cgi-fcgi" "pgrep")
     ) | nindent 8 }}
 
-The initContainer runs in the same image as the workload, so it sees the
-exact PATH / package state the probe will see at runtime.
+The initContainer runs in the same image as the workload, so it can check
+each binary against the same ambient PATH the workload uses.
 */}}
 {{- define "pimcore.initContainers.verify-probe-deps" -}}
 - name: verify-probe-deps

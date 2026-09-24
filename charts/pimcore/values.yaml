@@ -91,14 +91,14 @@ php:
   ## RollingUpdate (maxSurge/maxUnavailable 25%). At replicas >= 2 prefer
   ## {rollingUpdate: {maxUnavailable: 0, maxSurge: 1}} so a rollout never
   ## drops below the current replica count while a new pod comes up.
-  strategy: { }
+  strategy: {}
   ## Spread replicas across failure domains. Empty ([]) renders nothing.
   ## At replicas >= 2 set e.g. a topologyKey: kubernetes.io/hostname
   ## constraint with maxSkew: 1 to avoid co-locating all pods on one node.
-  topologySpreadConstraints: [ ]
+  topologySpreadConstraints: []
   ## Extra pod-template annotations for the PHP pods, merged after the
   ## global podAnnotations.
-  podAnnotations: { }
+  podAnnotations: {}
   service:
     type: ClusterIP
     port: 9000
@@ -156,7 +156,7 @@ php:
       command:
         - sh
         - -c
-        - 'SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong'
+        - "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong"
     periodSeconds: 10
     timeoutSeconds: 5
     failureThreshold: 30
@@ -166,7 +166,7 @@ php:
       command:
         - sh
         - -c
-        - 'SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong'
+        - "SCRIPT_NAME=/fpm-ping SCRIPT_FILENAME=/fpm-ping REQUEST_METHOD=GET cgi-fcgi -bind -connect 127.0.0.1:9000 | grep -qx pong"
     periodSeconds: 30
     timeoutSeconds: 5
     failureThreshold: 3
@@ -196,7 +196,7 @@ php:
     # opcacheConsistencyChecks: 0
     #
     pimcore:
-      phpMemoryLimit: 512M  # e.g. create very large GraphQL JSON responses can exceed 256M
+      phpMemoryLimit: 512M # e.g. create very large GraphQL JSON responses can exceed 256M
       phpMaxExecutionTime: 300
       phpErrorReporting: E_ALL
       phpDisplayErrors: "Off"
@@ -252,12 +252,12 @@ nginx:
   pdb:
     enabled: true
   ## Rollout strategy — see php.strategy.
-  strategy: { }
+  strategy: {}
   ## Spread replicas across failure domains — see php.topologySpreadConstraints.
-  topologySpreadConstraints: [ ]
+  topologySpreadConstraints: []
   ## Extra pod-template annotations for the nginx pods, merged after the
   ## global podAnnotations.
-  podAnnotations: { }
+  podAnnotations: {}
   tag: master
   service:
     type: ClusterIP
@@ -294,8 +294,8 @@ nginx:
       ephemeral-storage: 256Mi
   clientMaxBodySize: 100m
   cacheControl:
-    assets: 'public, max-age=300, must-revalidate'
-    thumbnails: 'public, max-age=300, must-revalidate'
+    assets: "public, max-age=300, must-revalidate"
+    thumbnails: "public, max-age=300, must-revalidate"
   sharedFolders:
     - public
     # bundles assets
@@ -509,7 +509,7 @@ pvc:
     ## NOTE: When it's set the rest of the `pvc.data.*` apart from `pvc.data.subPath`
     ## are ignored
     ##
-    existingClaim: ""  # if set other pvc.data.* are ignored
+    existingClaim: "" # if set other pvc.data.* are ignored
     ## @param pvc.data.subPath SubPath within the volume to mount as /var/www/pimcore
     ##
     subPath: pimcore
@@ -568,7 +568,7 @@ pvc:
     ## NOTE: When it's set the rest of the `pvc.mysql-backup.*` apart from `pvc.mysql-backup.subPath`
     ## are ignored
     ##
-    existingClaim: ""  # if set other pvc.mysql-backup.* are ignored
+    existingClaim: "" # if set other pvc.mysql-backup.* are ignored
     ## @param pvc.mysql-backup.subPath SubPath within the volume to mount as /var/www/pimcore
     ##
     subPath: pimcore-mysql-backup
@@ -591,14 +591,14 @@ redis:
 
 serviceAccount:
   create: true
-  annotations: { }
+  annotations: {}
   name: ""
 
-podAnnotations: { }
+podAnnotations: {}
 
-podSecurityContext: { }
+podSecurityContext: {}
 
-securityContext: { }
+securityContext: {}
 
 autoscaling:
   enabled: false
@@ -606,11 +606,11 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
 
-nodeSelector: { }
+nodeSelector: {}
 
 tolerations:
   nginx:
   php:
   maintenance:
 
-affinity: { }
+affinity: {}

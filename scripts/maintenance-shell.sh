@@ -5,10 +5,17 @@ set -euo pipefail
 kubectl_flags=()
 inject_tokens=false
 quiet=false
+# Whether the caller chose stdin/tty attachment. The -it defaults below key on this rather
+# than on any flag being present, because a caller such as pim always passes --namespace.
+tty_flags_given=false
 while [ $# -gt 0 ] && [[ "$1" == -* ]] && [ "$1" != "--" ]; do
 	case "$1" in
 	--with-tokens) inject_tokens=true ;;
 	--quiet | -q) quiet=true ;;
+	-i | -t | -it | -ti | --stdin* | --tty*)
+		tty_flags_given=true
+		kubectl_flags+=("$1")
+		;;
 	*) kubectl_flags+=("$1") ;;
 	esac
 	shift
@@ -135,7 +142,7 @@ fi
 kubectl_noninteractive_flags=()
 for f in "${kubectl_flags[@]}"; do
 	case "$f" in
-	-i | -t | -it) ;; # not valid for get/scale/cp
+	-i | -t | -it | -ti | --stdin* | --tty*) ;; # not valid for get/scale/cp
 	*) kubectl_noninteractive_flags+=("$f") ;;
 	esac
 done
@@ -196,8 +203,8 @@ fi
 _q kubectl scale "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy" --replicas=1
 _q kubectl rollout status "${kubectl_noninteractive_flags[@]}" deployment/"$shell_deploy"
 
-# Default flags if none provided (only for maint-* exec)
-if ! $raw_exec && ! $shell_cmd && [ "${#kubectl_flags[@]}" -eq 0 ]; then
+# Default -i/-it when the caller chose neither (only for maint-* exec)
+if ! $raw_exec && ! $shell_cmd && ! $tty_flags_given; then
 	case "$subcommand" in
 	shell | cache-reset | graphql-cache-reset)
 		kubectl_flags+=(-it)
@@ -289,8 +296,8 @@ fi
 if $raw_exec; then
 	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- "${env_prefix[@]}" "$@"
 elif $shell_cmd; then
-	# Auto-attach stdin+tty when no explicit kubectl flags given and stdin is a terminal
-	if [ "${#kubectl_flags[@]}" -eq 0 ] && [ -t 0 ]; then
+	# Auto-attach stdin+tty when the caller chose neither and stdin is a terminal
+	if ! $tty_flags_given && [ -t 0 ]; then
 		kubectl_flags+=(-it)
 	fi
 	kubectl exec "${kubectl_flags[@]}" deployment/"$shell_deploy" -- \

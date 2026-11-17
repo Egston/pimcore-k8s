@@ -35,7 +35,9 @@ run_user_hooks() {
             # Change to the directory to ensure relative paths in the hooks work
             cd "$USER_HOOK_DIR" || exit 1
             echo "Running user hooks in $USER_HOOK_DIR"
-            run-parts --report "$USER_HOOK_DIR"
+            # "." and not "$USER_HOOK_DIR": a relative path no longer resolves
+            # after the cd, and run-parts treats a missing directory as empty.
+            run-parts --report .
         )
     else
         echo "No user hooks to run in $USER_HOOK_DIR"
